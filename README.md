@@ -7,6 +7,10 @@ This repository contains all MATLAB codes and scripts including preprocessing, s
 To run the scripts succesfully, it needs to have an updated OSL (https://ohba-analysis.github.io/osl-docs/) and
 consequently SPM (https://www.fil.ion.ucl.ac.uk/spm/) be installed on your PC.
 
+The main scripts are: 
+feature_extraction_test.m –  includes all steps from feature extraction to call an SVM classifier.
+preproc_beamform_ROI.m – includes all steps from reading raw FIFF file to ROI extractions.
+
 Work in progress 
 
 rik.henson@mrc-cbu.cam.ac.uk
