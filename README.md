@@ -7,6 +7,7 @@ This repository contains all MATLAB scripts (and functions) including pre-proces
 
 Before downloading the repository:
 To produce results succesfully, it needs that you download the updated OSL from (https://ohba-analysis.github.io/osl-docs/) which consequently includes SPM (https://www.fil.ion.ucl.ac.uk/spm/). Depending how you download OSL, you need to rename the OSL'root directory (after unziping/uncompressing) to osl and put it in your bwd directory. This should be a folder called osl with the following contents:
+
 osl/
 
 ├── GLEAN/
@@ -30,6 +31,7 @@ osl/
 └── version.txt
 
 Then create a directory called "code" within bwd. So we will have a directory structure like this:
+
 bwd/
 
 ├── osl/
