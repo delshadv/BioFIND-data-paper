@@ -44,7 +44,7 @@ and download all scripts and function of this repository to the code directory.
 The code directory content is: 
 preproc_beamform_ROI.m – includes all steps from reading raw FIFF file to ROI extraction.
 feature_extraction_test.m –  includes all steps from different features extraction to call an SVM classifier.
-participants-imputed.tsv - is participants.tsv file which missing values of these covariates were imputed using the mean.
+participants-imputed.tsv - is participants.tsv file which missing values of covariates were imputed using the mean.
 
 Work in progress 
 
