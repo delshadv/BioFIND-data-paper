@@ -1,10 +1,11 @@
 
+% Step 1
 %% Pre-Processing, Beamforming, ROI Extraction %%
 
-% A multi-site, multi-participant magnetoencephalography resting-state dataset
-% to study dementia: The BioFIND dataset
-
-% This script contains preprocessing, co-registration, Source-localisation
+% A multi-site, multi-participant magnetoencephalography resting-state
+% dataset to study dementia: The BioFIND dataset
+%
+% This script contains preprocessing, co-registration, source-localisation
 % and ROI extraction steps for reproducing BioFIND data paper results
 
 % Note: Please make sure you are using the latest version of OSL and SPM
@@ -12,23 +13,46 @@
 
 % Henson R.N 2020, Vaghari D 2020
 
-%% Setup OSL
+%% Define Paths ands variables
 
-addpath('/imaging/dv01/Toolboxes/osl/osl-core') % Path to OSL directory
+% Assumed you are currently in a directory which includes BioFIND data,
+% OSL and code directories as described in readme.md
+
+%restoredefaultpath
+bwd = pwd;
+wd  = fullfile(bwd,'code'); % Assumed you've already downloaded BioFind
+% repository in "code" directory.
+
+% Setup OSL
+addpath(fullfile(bwd,'osl','osl-core'))
 osl_startup
 osl_check_installation
 
-%% Adding BIDS Paths, defining BIDS variables
-
-% Please do all analysis in a sperate directory from your BIDS data. Here, we
-% call it processed_pth
-processed_pth= '/imaging/dv01/Processed_sss_new';
-bidspth = '/imaging/dv01/BioFIND/MCIControls'; %BIDS Path;
-BIDS   = spm_BIDS(bidspth); % (If it does not work with OSL's SPM, so copied last version of spm_BIDS)
+% BIDS and Processed directories
+bidspth = fullfile(bwd,'BioFIND','MCIControls'); %BIDS Path
+BIDS   = spm_BIDS(bidspth); % (If it does not work with OSL's SPM, so copy last version of spm_BIDS)
 subs   = spm_BIDS(BIDS,'subjects', 'task', 'Rest');
 nsub   = numel(subs);
 subdir = cellfun(@(s) ['sub-' s], subs, 'UniformOutput',false);
 procpth = fullfile(bidspth,'derivatives','meg_derivatives'); % If want maxfiltered files
+
+%% Create Processed directory
+% Please do all analysis in a separate directory from BIDS
+% Here we call it "Processed"
+
+processed_pth= fullfile(bwd,'Processed');
+
+if ~exist(processed_pth,'dir')
+    
+    mkdir('Processed');
+    cd ('Processed')
+    for s=1:nsub
+        mkdir(sprintf('sub-Sub%04d',s))
+    end
+else
+end
+
+cd (processed_pth)    
 
 %% PreProcess- Part 1 (Convert, Downsample, Filter)
 
@@ -59,7 +83,7 @@ parfor sub = 1:length(subs)
     end
     D = spm_eeg_convert(S);
     
-    % Set channel types and bad channels (Does not work with OSL's SPM, so copied last version of spm_eeg_prep)
+    % Set channel types and bad channels
     S = [];
     S.D    = D;
     S.task = 'bidschantype';
@@ -70,7 +94,7 @@ parfor sub = 1:length(subs)
     D = chantype(D,indchantype(D,'megplanar'),'MEGPLANAR');
     D.save
     
-    % Downsampling the data %
+    % Downsampling the data 
     S = [];
     S.D = D;
     S.method = 'resample';
@@ -78,12 +102,12 @@ parfor sub = 1:length(subs)
     D = spm_eeg_downsample(S);
     delete(S.D)
     
-    % High-pass filter %
+    % High-pass filter 
     S = [];
     S.D = D;
     S.type = 'butterworth';
     S.band = 'high';
-    S.freq = 0.5; % Cutoff frequency    %%%% should need to use lower freq to have freq=1?
+    S.freq = 0.5; % Cutoff frequency
     S.dir = 'twopass';
     S.order = 5;
     S.prefix = 'f';
@@ -96,7 +120,7 @@ parfor sub = 1:length(subs)
     S.D = D;
     S.type = 'butterworth';
     S.band = 'low';
-    S.freq = 150; % Cutoff frequency
+    S.freq = 48; % Cutoff frequency
     S.dir = 'twopass';
     S.order = 5;
     S.prefix = 'f';
@@ -148,10 +172,21 @@ end
 
 % Coregisteration
 
+UseHPs = 1; % Use headpoints
+
 parfor sub=1:length(subs)
+    
     
     infile = fullfile(processed_pth,subdir{sub},'effdspmeeg');
     D = spm_eeg_load(infile);
+    D = D.montage('switch',0);
+    
+    % Remove headpoints around face (y>0 & z<0), particularly important if MRI de-faced
+    fid = D.fiducials;
+    fid.pnt(find(fid.pnt(:,2)>0 & fid.pnt(:,3)<0),:)=[];
+    D=fiducials(D,fid); D.save
+    
+    %D = rmfield(D,'inv');
     
     T1file = fullfile(processed_pth,subdir{sub},[subdir{sub} '_ses-meg1_T1w.nii']);
     if exist(T1file,'file')
@@ -167,8 +202,9 @@ parfor sub=1:length(subs)
         lpa    = V.mat*[fids.AnatomicalLandmarkCoordinates.LPA; 1];    lpa    = lpa(1:3)';
         rpa    = V.mat*[fids.AnatomicalLandmarkCoordinates.RPA; 1];    rpa    = rpa(1:3)';
         mrifid.fid.pnt = [nasion; lpa; rpa];
-        D = spm_eeg_inv_datareg_ui(D, 1, megfid, mrifid, 0);
-        D.inv{1}.comment = 'SPM fids only';
+        mrifid.pnt = D.inv{1}.mesh.fid.pnt;
+        D = spm_eeg_inv_datareg_ui(D, 1, megfid, mrifid, UseHPs);
+        if UseHPs, D.inv{1}.comment = 'With headpoints'; else, D.inv{1}.comment = 'SPM fids only'; end
         D.save;
         
     else
@@ -188,10 +224,8 @@ parfor sub=1:length(subs)
     
     D.inv{1}.forward(1).voltype = 'Single Shell';
     D = spm_eeg_inv_forward(D);
-    fid = D.fiducials;
-    fid.pnt(find(fid.pnt(:,2)>0 & fid.pnt(:,3)<0),:)=[];
-    D=fiducials(D,fid);
-    D.save
+    D.save;
+    
     
 end
 
@@ -200,13 +234,13 @@ end
 p           = parcellation(fullfile('fMRI_parcellation_ds8mm.nii.gz'));
 mni_coords  = p.template_coordinates;
 
-parfor sub = 1:length(subs) 
+parfor sub = 1:length(subs)
     
     infile = fullfile(processed_pth,subdir{sub},'effdspmeeg');
     D = spm_eeg_load(infile);
     
     % Run Beamforming
-
+    
     S = struct;
     S.modalities        = {'MEG','MEGPLANAR'};
     S.fuse              = 'all';
@@ -217,15 +251,14 @@ parfor sub = 1:length(subs)
     S.prefix            = 'b';
     
     D = osl_inverse_model(D,mni_coords,S);
-
-    % Select montage  
+    
+    % Select montage
     D = D.montage('switch',1);
     
     % Extract ROI (Region Of Interest)
     D = ROInets.get_node_tcs(D,p.to_matrix(p.binarize),'pca');
-          
+    
     % Save the data
     D.save;
     
 end
-
