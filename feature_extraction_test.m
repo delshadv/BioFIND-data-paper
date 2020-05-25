@@ -14,8 +14,8 @@
 
 %% Define Paths ands variables
 
-% Assumed you are a directory which includes BioFIND data, OSL and code as
-% describing in readme.md
+% Assumed you are currently in a directory which includes BioFIND data,
+% OSL and code directories as described in readme.md
 
 bwd = pwd;
 wd  = fullfile(bwd,'code'); % Assumed you've already downloaded BioFind
