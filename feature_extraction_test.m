@@ -1,168 +1,262 @@
 
-%% Features Extraction
-% A multi-site, multi-participant magnetoencephalography resting-state dataset
-% to study dementia: The BioFIND dataset
+%% Pre-Processing, Beamforming, ROI Extraction %%
 
-% This script calculates connectivity measure, and relative power for reproducing BioFIND data
-% paper results. It requires ROI data (see "preproc_beamform_ROI.m")
+% A multi-site, multi-participant magnetoencephalography resting-state
+% dataset to study dementia: The BioFIND dataset
+%
+% This script contains preprocessing, co-registration, source-localisation
+% and ROI extraction steps for reproducing BioFIND data paper results
 
 % Note: Please make sure you are using the latest version of OSL and SPM
 % within your OSL directory
 
 % Henson R.N 2020, Vaghari D 2020
 
-%% Setup OSL
-addpath('/imaging/dv01/Myscripts/BioFIND_datapaper')% Path to codes directory
-addpath('/imaging/dv01/Toolboxes/osl/osl-core') % Path to OSL directory
+%% Define Paths ands variables
+
+% Assumed you are a directory which includes BioFIND data, OSL and code as
+% describing in readme.md
+
+bwd = pwd;
+wd  = fullfile(bwd,'code'); % Assumed you've already downloaded BioFind
+% repository in "code" directory.
+
+% Setup OSL
+addpath(fullfile(bwd,'osl','osl-core'))
 osl_startup
 osl_check_installation
 
-%% Adding BIDS Paths, defining BIDS variables
-
-% Please do all analysis in a sperate directory from your BIDS data. Here, we
-% call it processed_pth
-processed_pth= '/imaging/dv01/Processed_sss_new';
-bidspth = '/imaging/dv01/BioFIND/MCIControls'; % BIDS Path
-BIDS   = spm_BIDS(bidspth); % (If it does not work with OSL's SPM, so copied last version of spm_BIDS)
+% BIDS and Processed directories
+bidspth = fullfile(bwd,'BioFIND','MCIControls'); %BIDS Path
+BIDS   = spm_BIDS(bidspth); % (If it does not work with OSL's SPM, so copy last version of spm_BIDS)
 subs   = spm_BIDS(BIDS,'subjects', 'task', 'Rest');
 nsub   = numel(subs);
 subdir = cellfun(@(s) ['sub-' s], subs, 'UniformOutput',false);
+procpth = fullfile(bidspth,'derivatives','meg_derivatives'); % If want maxfiltered files
 
-% Define Confound, Covariate matrix
+%% Create Processed directory
+% Please do all analysis in a separate directory from BIDS
+% Here, we call it "Processed"
 
-participants = spm_load('/imaging/dv01/Myscripts/participants-imputed.tsv');
-group_num    = grp2idx(participants.group)-1;
-site_num     = grp2idx(participants.site)-1;
-sex_num      = grp2idx(participants.sex)-1;
-Age          = participants.age;
-mri_num      = grp2idx(participants.sImaging);
-rec_time     = participants.Recording_time;
-Edu          = participants.Edu_years;
-Move1        = participants.Move1;
-Move2        = participants.Move2;
+processed_pth= fullfile(bwd,'Processed');
 
-A_for_Cov = [site_num sex_num zscore([Age Move1 Move2 rec_time]) ones(size(Age))];
+if ~exist(processed_pth,'dir')
+    
+    mkdir('Processed');
+    cd ('Processed')
+    for s=1:nsub
+        mkdir(sprintf('sub-Sub%04d',s))
+    end
+else
+end
 
-%% Connectivity measure: Amplitude Envelope Correlation %%
+cd (processed_pth)    
 
-features = [];
+%% PreProcess- Part 1 (Convert, Downsample, Filter)
+
 parfor sub = 1:length(subs)
     
-    infile = fullfile(processed_pth,subdir{sub},'beffdspmeeg');
-    D = spm_eeg_load(infile);
-    D = D.montage('switch',3); % Data must be in ROI montage
+    % Read event & json file to extract desirable length of MEG Recordings
     
-    % Remove source leakage using sysmetric Orthogonalisation
-    y = D(:,:,:);
-    y = reshape(y,D.nchannels,D.nsamples*D.ntrials); % generalise to Nsource,Ntime*Ntrials
-    y0 = ROInets.remove_source_leakage(y,'symmetric');
+    tmp = spm_jsonread(fullfile(procpth,subdir{sub},'ses-meg1','meg',[subdir{sub} '_ses-meg1_task-Rest_proc-sss_meg.json']));
+    event_file = spm_load(fullfile(bidspth,subdir{sub},'ses-meg1','meg',[subdir{sub} '_ses-meg1_task-Rest_events.tsv']));
+    onset = (event_file.onset*tmp.SamplingFrequency)+1;
     
-    % Filter to desired frequency band
-    y0 = ft_preproc_bandpassfilter(y0, D.fsample, [6 14], 4, 'but', 'twopass', 'no');
-    y = reshape(y0,D.nchannels,D.nsamples,D.ntrials);
+    % offset = onset + event_file.duration*tmp.SamplingFrequency;
+    offset = (onset + 120 *tmp.SamplingFrequency)-1; % we put 120 seconds due to min length of raw data
     
-    Hen_lc_sep = [];
-    for t=1:size(y,3)
-        Hen_lc_sep(:,:,t) = hilbenv(squeeze(y(:,:,t)),1:D.nsamples,1,1);
+    % Converting
+    
+    S = [];
+    S.outfile = fullfile(processed_pth,subdir{sub},'spmeeg');
+    S.dataset = fullfile(procpth,subdir{sub},'ses-meg1','meg',[subdir{sub} '_ses-meg1_task-Rest_proc-sss_meg.fif']);
+    S.mode = 'epoched';
+    S.channels = {'EOG', 'ECG', 'MEGMAG', 'MEGPLANAR'}; % EEG was removed
+    S.checkboundary = 0;
+    S.trl = [onset offset 0];
+    try
+        S.conditionlabels = event_file.stim_type;
+    catch
+        S.conditionlabels = event_file.trial_type;
     end
-    Hen_lc_sep = reshape(Hen_lc_sep,D.nchannels,D.nsamples*D.ntrials);
+    D = spm_eeg_convert(S);
     
-    cm = corr(resample(Hen_lc_sep',1,D.fsample)); %+diag(nan(38,1));
-    %         ca = [min(cm(:)) max(cm(:))];
-    %         figure;
-    %         imagesc(cm), caxis(ca); colorbar;
-    features(sub,:) = (cm(find(triu(cm,1))))';
+    % Set channel types and bad channels
+    S = [];
+    S.D    = D;
+    S.task = 'bidschantype';
+    S.save = 1;
+    S.filename = fullfile(bidspth,subdir{sub},'ses-meg1','meg',[subdir{sub} '_ses-meg1_task-Rest_channels.tsv']);
+    D = spm_eeg_prep(S);
+    D = chantype(D,indchantype(D,'megmag'),'MEGMAG');
+    D = chantype(D,indchantype(D,'megplanar'),'MEGPLANAR');
+    D.save
+    
+    % Downsampling the data 
+    S = [];
+    S.D = D;
+    S.method = 'resample';
+    S.fsample_new = 500;
+    D = spm_eeg_downsample(S);
+    delete(S.D)
+    
+    % High-pass filter 
+    S = [];
+    S.D = D;
+    S.type = 'butterworth';
+    S.band = 'high';
+    S.freq = 0.5; % Cutoff frequency
+    S.dir = 'twopass';
+    S.order = 5;
+    S.prefix = 'f';
+    D = spm_eeg_filter(S);
+    delete(S.D)
+    
+    
+    % Low-pass filter
+    S = [];
+    S.D = D;
+    S.type = 'butterworth';
+    S.band = 'low';
+    S.freq = 48; % Cutoff frequency
+    S.dir = 'twopass';
+    S.order = 5;
+    S.prefix = 'f';
+    D = spm_eeg_filter(S);
+    delete(S.D)
     
 end
 
-% Machine Learning
-M   = features;
-aM = M - A_for_Cov*pinv(A_for_Cov)*M;
-A = [aM group_num];
-A = A(mri_num==1,:);
-% to reproduce paper results, created by Classifier Learner app
-[~, validationAccuracy] = trainClassifierC(A)
 
-%% Relative power in source space %%
+%% PreProcess- Part 2 - Epoching, OSL Artifacts detection
 
-features = [];
+parfor sub = 1:length(subs)
+    
+    infile = fullfile(processed_pth,subdir{sub},'ffdspmeeg');
+    D = spm_eeg_load(infile);
+    
+    EpochLength = 2 * D.fsample; % in samples
+    t = [1:EpochLength:(D.nsamples-EpochLength)]';
+    nt = length(t);
+    
+    S = [];
+    S.D = D;
+    S.trl = [t t+EpochLength-1 zeros(nt,1)];
+    S.conditionlabels = repmat({'EYES_CLOSED'},1,nt);
+    S.prefix='e';
+    S.bc = 0;
+    D = spm_eeg_epochs(S);
+    D.save;
+    % OSL artifact detection
+    D = osl_detect_artefacts(D,'modalities',unique(D.chantype(D.indchantype('MEGANY'))),'badchannels',false);
+    D.save;
+    
+end
+
+
+%% RUN Standard COREGISTRATION using SPM
+
+% Copy T1w files to processed directory;
+
+parfor sub=1:length(subs)
+    bidsT1 = fullfile(bidspth,subdir{sub},'ses-meg1','anat',[subdir{sub} '_ses-meg1_T1w.nii.gz']);
+    T1file = fullfile(processed_pth,subdir{sub},[subdir{sub} '_ses-meg1_T1w.nii'])
+    if exist(bidsT1,'file') & ~exist(T1file,'file')
+        copyfile(bidsT1,[T1file '.gz']);
+        gunzip([T1file '.gz'])
+        delete([T1file '.gz'])
+    end
+end
+
+% Coregisteration
+
+UseHPs = 1; % Use headpoints
+
 parfor sub=1:length(subs)
     
-    alphaRp = []; totalp = []; locAlpha = []; locLow = [];locHigh = [];
     
-    infile = fullfile(processed_pth,subdir{sub},'beffdspmeeg');
+    infile = fullfile(processed_pth,subdir{sub},'effdspmeeg');
     D = spm_eeg_load(infile);
-    D = D.montage('switch',3); % Data must be in ROI montage
+    D = D.montage('switch',0);
     
-    % Estimation of power spectral density
-    p = []; fP=[]; g=[]; y=[];
-    g=D(:,:,:);
-    g(:,:,D.badtrials)=[];
+    % Remove headpoints around face (y>0 & z<0), particularly important if MRI de-faced
+    fid = D.fiducials;
+    fid.pnt(find(fid.pnt(:,2)>0 & fid.pnt(:,3)<0),:)=[];
+    D=fiducials(D,fid); D.save
     
+    %D = rmfield(D,'inv');
     
-    for e = 1:size(g,3)
-        [p(e,:,:),fP]=pwelch(g(:,:,e)',500,400,1000,D.fsample);
+    T1file = fullfile(processed_pth,subdir{sub},[subdir{sub} '_ses-meg1_T1w.nii']);
+    if exist(T1file,'file')
+        D = spm_eeg_inv_mesh_ui(D,1,T1file,2);
+        
+        V = spm_vol(T1file);
+        fids = spm_jsonread(fullfile(bidspth,subdir{sub},'ses-meg1','anat',[subdir{sub} '_ses-meg1_T1w.json']));
+        
+        mrifid = [];
+        megfid = D.fiducials;
+        mrifid.fid.label = {'Nasion';'LPA';'RPA'};
+        nasion = V.mat*[fids.AnatomicalLandmarkCoordinates.Nasion; 1]; nasion = nasion(1:3)';
+        lpa    = V.mat*[fids.AnatomicalLandmarkCoordinates.LPA; 1];    lpa    = lpa(1:3)';
+        rpa    = V.mat*[fids.AnatomicalLandmarkCoordinates.RPA; 1];    rpa    = rpa(1:3)';
+        mrifid.fid.pnt = [nasion; lpa; rpa];
+        mrifid.pnt = D.inv{1}.mesh.fid.pnt;
+        D = spm_eeg_inv_datareg_ui(D, 1, megfid, mrifid, UseHPs);
+        if UseHPs, D.inv{1}.comment = 'With headpoints'; else, D.inv{1}.comment = 'SPM fids only'; end
+        D.save;
+        
+    else
+        D = spm_eeg_inv_mesh_ui(D,1,1,2);
+        mrifid = [];
+        for f=1:3
+            mrifid.fid.label{f} = D.inv{1}.mesh.fid.fid.label{f};
+            mrifid.fid.pnt(f,:) = D.inv{1}.mesh.fid.fid.pnt(f,:);
+        end
+        megfid = D.fiducials;
+        megfid.fid.label{find(strcmp([megfid.fid.label],'LPA'))} = 'lpa';
+        megfid.fid.label{find(strcmp([megfid.fid.label],'RPA'))} = 'rpa';
+        megfid.fid.label{find(strcmp([megfid.fid.label],'Nasion'))} = 'nas';
+        D = spm_eeg_inv_datareg_ui(D, 1, megfid, mrifid, 0);
+        D.save;
     end
-    p = squeeze(mean(p,1)); p=p';
     
-    locAlpha = find(fP>=8 & fP<=12);
-    locLow   = find(fP==0.5);
-    locHigh  = find(fP==150);
+    D.inv{1}.forward(1).voltype = 'Single Shell';
+    D = spm_eeg_inv_forward(D);
+    D.save;
     
-    totalp  = sum(p(:,locLow:locHigh),2);
-    alphaRp = sum((p(:,locAlpha)./totalp),2);
-    
-    features(sub,:) = alphaRp;
     
 end
 
-% Machine Learning
-M   = features;
-aM = M - A_for_Cov*pinv(A_for_Cov)*M;
-A = [aM group_num];
-A = A(mri_num==1,:);
+%% Beamforming and Extract ROIs using OSL
 
-% to reproduce paper results, created by Classifier Learner app
+p           = parcellation(fullfile('fMRI_parcellation_ds8mm.nii.gz'));
+mni_coords  = p.template_coordinates;
 
-[~, validationAccuracy] = trainClassifierPsource(A)
-
-
-
-%% Relative power in sensor space %%
-
-features = [];
-
-parfor sub=1:length(subs)
+parfor sub = 1:length(subs)
     
-    infile = fullfile(processed_pth,subdir{sub},'beffdspmeeg');
+    infile = fullfile(processed_pth,subdir{sub},'effdspmeeg');
     D = spm_eeg_load(infile);
-    D = D.montage('switch',0); % Data must be in sensor montage
     
-    % Estimation of power spectral density
-    p = []; fP=[]; g=[]; y=[];
-    chans = D.indchantype('MEGANY','GOOD'); % Retrieve all MEG channels
-    g = D(chans,:,:);
-    g(:,:,D.badtrials)=[];
+    % Run Beamforming
     
+    S = struct;
+    S.modalities        = {'MEG','MEGPLANAR'};
+    S.fuse              = 'all';
+    S.timespan          = [0 Inf];
+    S.pca_order         = 50;
+    S.type              = 'Scalar';
+    S.inverse_method    = 'beamform';
+    S.prefix            = 'b';
     
-    for e = 1:size(g,3)
-        [p(e,:,:),fP]=pwelch(g(:,:,e)',500,400,1000,D.fsample);
-    end
-    p = squeeze(mean(p,1)); p=p';
+    D = osl_inverse_model(D,mni_coords,S);
     
-    locAlpha = find(fP>=8 & fP<=12);
-    locLow   = find(fP==0.5);
-    locHigh  = find(fP==150);
+    % Select montage
+    D = D.montage('switch',1);
     
-    totalp  = sum(p(:,locLow:locHigh),2);
-    alphaRp = sum((p(:,locAlpha)./totalp),2);
+    % Extract ROI (Region Of Interest)
+    D = ROInets.get_node_tcs(D,p.to_matrix(p.binarize),'pca');
     
-    features(sub,:) = alphaRp;
+    % Save the data
+    D.save;
+    
 end
-
-% Machine Learning
-M   = features;
-aM = M - A_for_Cov*pinv(A_for_Cov)*M;
-A = [aM group_num];
-% to reproduce paper results, created by Classifier Learner app
-[~, validationAccuracy] = trainClassifierPsensor(A)
