@@ -5,7 +5,7 @@ In BioFIND dataset, we introduced a MEG dataset with 324 individuals, half patie
 This repository contains all MATLAB scripts (and functions) including pre-processing, co-registration, source-localisation, feature extraction and machine learning steps to reproduce results of data paper ().
 
 Before downloading the repository:
-To re-produce results succesfully, it is required that you first download and set up OSL toolbox from (https://ohba-analysis.github.io/osl-docs/) which consequently includes SPM toolbox (https://www.fil.ion.ucl.ac.uk/spm/). Depending on how you download OSL, you need to rename the OSL's root directory (after uncompression) to "osl" and put it in your current directory. This should be a folder called osl with the following contents:
+To re-produce results succesfully, it is required that you first download and set up OSL toolbox from (https://ohba-analysis.github.io/osl-docs/) which consequently includes SPM toolbox (https://www.fil.ion.ucl.ac.uk/spm/). Depending on how you download OSL, you need to rename the OSL's root directory (after decompress) to "osl" and put it in your current directory. This should be a folder called osl with the following contents:
 
 osl/
 .
