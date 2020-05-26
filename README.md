@@ -35,7 +35,8 @@ bwd/
 Repository content : 
 preproc_beamform_ROI.m – includes all steps from reading raw FIFF file to ROI extraction.
 feature_extraction_test.m –  includes the steps from different features extraction and call an SVM classifier and get nested cross-validation results (table 3, data paper).
-participants-imputed.tsv - is MCIControls BIDS participants.tsv file in which missing values of covariates were imputed using the mean.
+
+participants-imputed.tsv - is MCIControl's participants.tsv file (see https://bids.neuroimaging.io/) in which missing values of covariates were imputed using the mean.
 
 Work in progress 
 
