@@ -1,6 +1,6 @@
-% STEP 2
 
-%% Features Extraction and Classification %%
+% STEP 2
+%% Features Extraction
 
 % A multi-site, multi-participant magnetoencephalography resting-state dataset
 % to study dementia: The BioFIND dataset
@@ -23,6 +23,7 @@
 bwd = pwd;
 wd  = fullfile(bwd,'code'); % Assumed you've already downloaded BioFind
 % repository in "code" directory.
+cd (wd)
 
 % Setup OSL
 addpath(fullfile(bwd,'osl','osl-core'))
@@ -38,56 +39,19 @@ subdir = cellfun(@(s) ['sub-' s], subs, 'UniformOutput',false);
 
 % Define Confounds and Covariate matrix
 participants = spm_load(fullfile(wd,'participants-imputed.tsv'));
-group_num    = grp2idx(participants.group)-1;
-site_num     = grp2idx(participants.site)-1;
-sex_num      = grp2idx(participants.sex)-1;
+group_num    = grp2idx(participants.group);
+site_num     = grp2idx(participants.site);
+sex_num      = grp2idx(participants.sex);
 Age          = participants.age;
 mri_num      = grp2idx(participants.sImaging);
 rec_time     = participants.Recording_time;
-Edu          = participants.Edu_years;
 Move1        = participants.Move1;
 Move2        = participants.Move2;
 A_for_Cov = [site_num sex_num zscore([Age Move1 Move2 rec_time]) ones(size(Age))];
 
 %% Cross-Validation setting
 
-Nfold     = 10; % Number of folds for cross-validation
-%% Connectivity measure: Amplitude Envelope Correlation %%
-
-features = [];
-parfor sub = 1:length(subs)
-    
-    infile = fullfile(processed_pth,subdir{sub},'beffdspmeeg');
-    D = spm_eeg_load(infile);
-    D = D.montage('switch',3); % Data must be in ROI montage
-    
-    % Remove source leakage using sysmetric Orthogonalisation
-    y = D(:,:,:);
-    y = reshape(y,D.nchannels,D.nsamples*D.ntrials); % generalise to Nsource,Ntime*Ntrials
-    
-    y0 = ft_preproc_bandpassfilter(y, D.fsample, [6 14], 4, 'but', 'twopass', 'no');
-    y0 = ROInets.remove_source_leakage(y0,'symmetric');
-
-    y = reshape(y0,D.nchannels,D.nsamples,D.ntrials);
-    
-    Hen_lc_sep = [];
-    for t=1:size(y,3)
-        Hen_lc_sep(:,:,t) = hilbenv(squeeze(y(:,:,t)),1:D.nsamples,1,1);
-    end
-    
-    Hen_lc_sep = reshape(Hen_lc_sep,D.nchannels,D.nsamples*D.ntrials);
-    
-    cm = corr(resample(Hen_lc_sep',1,D.fsample)); 
-    features(sub,:) = (cm(find(triu(cm,1))))';
-    
-end
-
-% Machine Learning
-M   = features;
-aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
-A = [aM group_num];
-A = A(mri_num==1,:); % Remove subjects without T1 MRI
-rng(1) % to reproduce paper results
+kFolds = 10; % Number of folds for nested cross-validation (inner and outer)
 
 %% Relative power in source space %%
 
@@ -129,12 +93,50 @@ M   = features;
 aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
 A = [aM group_num];
 A = A(mri_num==1,:); % Remove subjects without T1 MRI
-rng(1) % to reproduce paper results
- 
+rng(1) % For reproducibility
+accuracy = nestedCVSP(A,kFolds)
+
+%% Connectivity measure: Amplitude Envelope Correlation %%
+
+features = [];
+parfor sub = 1:length(subs)
+    
+    infile = fullfile(processed_pth,subdir{sub},'beffdspmeeg');
+    D = spm_eeg_load(infile);
+    D = D.montage('switch',3); % Data must be in ROI montage
+    
+    % Remove source leakage using sysmetric Orthogonalisation
+    y = D(:,:,:);
+    y = reshape(y,D.nchannels,D.nsamples*D.ntrials); % generalise to Nsource,Ntime*Ntrials
+    
+    y0 = ft_preproc_bandpassfilter(y, D.fsample, [6 14], 4, 'but', 'twopass', 'no');
+    y0 = ROInets.remove_source_leakage(y0,'symmetric');
+
+    y = reshape(y0,D.nchannels,D.nsamples,D.ntrials);
+    
+    Hen_lc_sep = [];
+    for t=1:size(y,3)
+        Hen_lc_sep(:,:,t) = hilbenv(squeeze(y(:,:,t)),1:D.nsamples,1,1);
+    end
+    
+    Hen_lc_sep = reshape(Hen_lc_sep,D.nchannels,D.nsamples*D.ntrials);
+    
+    cm = corr(resample(Hen_lc_sep',1,D.fsample)); 
+    features(sub,:) = (cm(find(triu(cm,1))))';
+    
+end
+
+% Machine Learning
+M   = features;
+aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
+A = [aM group_num];
+A = A(mri_num==1,:); % Remove subjects without T1 MRI
+rng(1) % For reproducibility
+accuracy = nestedCVCon(A,kFolds)
+
 %% Relative power in sensor space %%
 
 features = [];
-
 parfor sub=1:length(subs)
     
     alphaRp = []; totalp = []; locAlpha = []; locLow = [];locHigh = [];
