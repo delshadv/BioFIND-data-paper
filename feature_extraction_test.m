@@ -7,23 +7,21 @@
 %
 % This script calculates connectivity measure, and relative power
 % for reproducing BioFIND data paper results.
-% It requires ROI data (see "preproc_beamform_ROI.m" fisr)
+% It requires ROI data (see "preproc_beamform_ROI.m" first)
 %
 % Note: Please make sure you are using the latest version of OSL and SPM
 % within your OSL directory
-% Note: Please copy all files from BioFIND repository (codes directory)
 
 % Henson R.N 2020, Vaghari D 2020
 
 %% Define Paths and variables
 
-% Assuming you are currently in a directory which includes BioFIND data,
+% Assumed you are currently in a directory which includes BioFIND data,
 % OSL and code directories as described in readme.md
 
 bwd = pwd;
-wd  = fullfile(bwd,'code'); % Assuming you've already downloaded BioFind
-% repository in the "code" directory.
-cd (wd)
+addpath(fullfile(bwd,'code')); % Assuming you've already downloaded BioFind
+% repository in "code" directory.
 
 % Setup OSL
 addpath(fullfile(bwd,'osl','osl-core'))
@@ -38,27 +36,27 @@ nsub   = numel(subs);
 subdir = cellfun(@(s) ['sub-' s], subs, 'UniformOutput',false);
 
 % Define Confounds and Covariate matrix
-participants = spm_load(fullfile(wd,'participants-imputed.tsv'));
+participants = spm_load(fullfile('code','participants-imputed.tsv'));
 group_num    = grp2idx(participants.group);
 site_num     = grp2idx(participants.site);
 sex_num      = grp2idx(participants.sex);
-Age          = participants.age;
 mri_num      = grp2idx(participants.sImaging);
-rec_time     = participants.Recording_time;
-Move1        = participants.Move1;
-Move2        = participants.Move2;
-A_for_Cov = [site_num sex_num zscore([Age Move1 Move2 rec_time]) ones(size(Age))];
 
-%% Cross-Validation setting
+A_for_Cov = [site_num sex_num zscore([participants.age...
+    participants.Move1 participants.Move2...
+    participants.Recording_time]) ones(size(participants.age))];
 
-kFolds = 10; % Number of folds for nested cross-validation (inner and outer)
+% Cross-Validation setting
+kFolds = 10; % Number of folds for cross-validation (inner and outer loops)
+Nrun   = 100; % Number of runs to repeat cross-validation
+CVratio = [(kFolds-1)/kFolds 1-[(kFolds-1)/kFolds]]; % Train-Test Split ratio for cross-validation
 
 %% Relative power in source space %%
 
 features = [];
 parfor sub=1:length(subs)
     
-    alphaRp = []; totalp = []; locAlpha = []; locLow = [];locHigh = [];
+    alphaRp = []; betaRp = []; totalp = []; locAlpha = []; locLow = [];locHigh = [];
     
     infile = fullfile(processed_pth,subdir{sub},'beffdspmeeg');
     D = spm_eeg_load(infile);
@@ -77,52 +75,17 @@ parfor sub=1:length(subs)
     p = squeeze(mean(p,1)); p=p';
     
     locAlpha = find(fP>=8 & fP<=12);
+    locBeta  = find(fP>12 & fP<=30);
     locLow   = find(fP==0.5);
     locHigh  = find(fP==48);
     
     totalp  = sum(p(:,locLow:locHigh),2);
     alphaRp = sum((p(:,locAlpha)./totalp),2);
+    betaRp  = sum((p(:,locBeta)./totalp),2);
     
-    
-    features(sub,:) = alphaRp;
-    
-end
-
-% Machine Learning
-M   = features;
-aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
-A = [aM group_num];
-A = A(mri_num==1,:); % Remove subjects without T1 MRI
-rng(1) % For reproducibility
-accuracy = nestedCVSP(A,kFolds)
-
-%% Connectivity measure: Amplitude Envelope Correlation %%
-
-features = [];
-parfor sub = 1:length(subs)
-    
-    infile = fullfile(processed_pth,subdir{sub},'beffdspmeeg');
-    D = spm_eeg_load(infile);
-    D = D.montage('switch',3); % Data must be in ROI montage
-    
-    % Remove source leakage using sysmetric Orthogonalisation
-    y = D(:,:,:);
-    y = reshape(y,D.nchannels,D.nsamples*D.ntrials); % generalise to Nsource,Ntime*Ntrials
-    
-    y0 = ft_preproc_bandpassfilter(y, D.fsample, [6 14], 4, 'but', 'twopass', 'no');
-    y0 = ROInets.remove_source_leakage(y0,'symmetric');
-
-    y = reshape(y0,D.nchannels,D.nsamples,D.ntrials);
-    
-    Hen_lc_sep = [];
-    for t=1:size(y,3)
-        Hen_lc_sep(:,:,t) = hilbenv(squeeze(y(:,:,t)),1:D.nsamples,1,1);
-    end
-    
-    Hen_lc_sep = reshape(Hen_lc_sep,D.nchannels,D.nsamples*D.ntrials);
-    
-    cm = corr(resample(Hen_lc_sep',1,D.fsample)); 
-    features(sub,:) = (cm(find(triu(cm,1))))';
+    tmp = [alphaRp betaRp];
+    features(sub,:) = tmp(:);
+    tmp = [];
     
 end
 
@@ -132,7 +95,13 @@ aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
 A = [aM group_num];
 A = A(mri_num==1,:); % Remove subjects without T1 MRI
 rng(1) % For reproducibility
-accuracy = nestedCVCon(A,kFolds)
+accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
+%accuracy = repeated_CV_matlab(A,CVratio,kFolds,Nrun);
+
+mean(accuracy)
+std(accuracy)
+SEM = (std(accuracy)/sqrt(length(accuracy)))
+figure;hist(accuracy)
 
 %% Relative power in sensor space %%
 
@@ -160,19 +129,80 @@ parfor sub=1:length(subs)
     p = squeeze(mean(p,1)); p=p';
     
     locAlpha = find(fP>=8 & fP<=12);
+    locBeta  = find(fP>12 & fP<=30);
     locLow   = find(fP==0.5);
     locHigh  = find(fP==48);
     
     totalp  = sum(p(:,locLow:locHigh),2);
     alphaRp = sum((p(:,locAlpha)./totalp),2);
+    betaRp  = sum((p(:,locBeta)./totalp),2);
     
-    
-    features(sub,:) = alphaRp;
+    tmp = [alphaRp betaRp];
+    features(sub,:) = tmp(:);
+    tmp = [];
     
 end
 
 % Machine Learning
 M   = features;
 aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
+A = [aM group_num]; % For all subjects
+A = A(mri_num==1,:); % Remove subjects without T1 MRI
+
+rng(1) % For reproducibility
+accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
+
+mean(accuracy)
+std(accuracy)
+SEM = (std(accuracy)/sqrt(length(accuracy)))
+figure;hist(accuracy)
+
+%% Connectivity measure: Amplitude Envelope Correlation %%
+
+features  = [];
+freqbands = {[7 13],[12,31]};
+
+for ii = 1:length(freqbands)
+    
+    parfor sub = 1:length(subs)
+        
+        infile = fullfile(processed_pth,subdir{sub},'beffdspmeeg');
+        D = spm_eeg_load(infile);
+        D = D.montage('switch',3); % Data must be in ROI montage
+        
+        % Remove source leakage using sysmetric Orthogonalisation
+        y = D(:,:,:);
+        y = reshape(y,D.nchannels,D.nsamples*D.ntrials); % generalise to Nsource,Ntime*Ntrials
+        
+        y0 = ft_preproc_bandpassfilter(y, D.fsample, freqbands{ii}, 4, 'but', 'twopass', 'no');
+        y0 = ROInets.remove_source_leakage(y0,'symmetric');
+        
+        y = reshape(y0,D.nchannels,D.nsamples,D.ntrials);
+        
+        Hen_lc_sep = [];
+        for t=1:size(y,3)
+            Hen_lc_sep(:,:,t) = hilbenv(squeeze(y(:,:,t)),1:D.nsamples,1,1);
+        end
+        
+        Hen_lc_sep = reshape(Hen_lc_sep,D.nchannels,D.nsamples*D.ntrials);
+        
+        cm = corr(resample(Hen_lc_sep',1,D.fsample));
+        f(sub,:) = (cm(find(triu(cm,1))))';
+        
+    end
+    features = [features f];
+end
+
+% Machine Learning
+M   = features;
+aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
 A = [aM group_num];
-rng(1) % to reproduce paper results
+A = A(mri_num==1,:); % Remove subjects without T1 MRI
+rng(1) % For reproducibility
+accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
+
+mean(accuracy)
+std(accuracy)
+SEM = (std(accuracy)/sqrt(length(accuracy)))
+figure;hist(accuracy)
+
