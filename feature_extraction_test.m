@@ -34,6 +34,7 @@ BIDS   = spm_BIDS(bidspth); % (If it does not work with OSL's SPM, so copy last 
 subs   = spm_BIDS(BIDS,'subjects', 'task', 'Rest');
 nsub   = numel(subs);
 subdir = cellfun(@(s) ['sub-' s], subs, 'UniformOutput',false);
+processed_pth = fullfile(bwd,'Processed');
 
 % Define Confounds and Covariate matrix
 participants = spm_load(fullfile('code','participants-imputed.tsv'));
