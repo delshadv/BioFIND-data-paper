@@ -92,7 +92,7 @@ end
 
 % Machine Learning
 M   = features;
-aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
+aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out confounds
 A = [aM group_num];
 A = A(mri_num==1,:); % Remove subjects without T1 MRI
 rng(1) % For reproducibility
@@ -143,7 +143,7 @@ end
 
 % Machine Learning
 M   = features;
-aM = M - A_for_Cov * pinv(A_for_Cov) * M; % Regress out
+aM = M - A_for_Cov * pinv(A_for_Cov) * M; % Regress out confounds
 A = [aM group_num]; % For all subjects
 rng(1) % For reproducibility
 accuracy = repeated_CV(A,kFolds,Nrun);
@@ -201,7 +201,7 @@ for ii = 1:length(freqbands)
 end
 % Machine Learning
 M   = features;
-aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
+aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out confounds
 A = [aM group_num];
 A = A(mri_num==1,:); % Remove subjects without T1 MRI
 rng(1) % For reproducibility
