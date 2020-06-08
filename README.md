@@ -36,11 +36,13 @@ bwd/
 
 The BioFIND repository content: 
 1. preproc_beamform_ROI.m – includes all steps from reading raw FIFF file to ROI extraction (Step 1)
+
 2 .feature_extraction_test.m –  includes all steps from different features extraction to call an SVM classifier and get Repetition of cross-validation results (table 3, data paper). (Step 2)
 
 Note: It is necessary to have MATLAB's "Digital Signal Processing" and "Statistics and Machine Learning" Toolboxes installed within the MATLAB version you use to run feature_extraction_test.m successfully.
 
 3. participants-imputed.tsv - is MCIControl's participants.tsv file in which missing values of covariates were imputed using the mean. (see () for more info about participants.tsv)
+
 4. repeated_CV.m - a function for training an SVM model and produce cross-validation accuracy results for "Nrun" times repetition.
 
 Work in progress 
