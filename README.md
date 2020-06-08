@@ -43,7 +43,7 @@ Note: It is necessary to have MATLAB's "Digital Signal Processing" and "Statisti
 
 3. participants-imputed.tsv - is MCIControl's participants.tsv file in which missing values of covariates were imputed using the mean. (see () for more info about participants.tsv)
 
-4. repeated_CV.m - a function for training an SVM model and produce cross-validation accuracy results for "Nrun" times repetition.
+4. repeated_CV.m - a function for training an SVM model and produce cross-validation accuracy for "Nrun" times repetition. (For more info about arguments see the function's description)
 
 Work in progress 
 
