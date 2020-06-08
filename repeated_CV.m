@@ -2,7 +2,7 @@ function accuracy = repeated_CV_matlab(A,kFolds,Nrun)
 
 % This function calculates cross-validation accuracy
 % using Support Vector Machines with linear kernel.
-% The data is randomly split into kFolds partitions several times(Nrun times).
+% The data is randomly split into "kFolds" partitions several times(Nrun times).
 %
 %
 % A : input matrix [m n+1]; m: subjects (cases/observations), n: features
