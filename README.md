@@ -5,7 +5,7 @@ In BioFIND dataset, we introduced a MEG dataset with 324 individuals, half patie
 This repository contains all MATLAB scripts (and functions) including pre-processing, co-registration, source-localisation, feature extraction and machine learning steps to reproduce results of data paper ().
 
 Before downloading the repository:
-To re-produce results succesfully, it is required that you first download and set up OSL toolbox from (https://ohba-analysis.github.io/osl-docs/) which consequently includes SPM toolbox (https://www.fil.ion.ucl.ac.uk/spm/). Depending on how you download OSL, you need to rename the OSL's root directory (after decompress) to "osl" and put it in your current directory. This should be a folder called osl with the following contents:
+It is required that you first download and set up OSL toolbox from (https://ohba-analysis.github.io/osl-docs/) which consequently includes SPM toolbox (https://www.fil.ion.ucl.ac.uk/spm/). Depending on how you download OSL, you need to rename the OSL's root directory (after decompress) to "osl" and put it in your current directory. This should be a folder called osl with at least the following contents:
 
 osl/
 .
@@ -23,20 +23,25 @@ osl/
 .
 .
 
-Then, create a directory called "code" at same level of osl means within your current directory and download all of this repository in code folder. So we will have a directory structure like this:
+Then, create a directory called "code" within your current directory (at same level of osl) and download all of this repository within code folder. So we will have a directory structure in your current directory like this:
 
 bwd/
 
 ├── osl/
 
 ├── code/
+.
+.
+.
 
+The BioFIND repository content: 
+1. preproc_beamform_ROI.m – includes all steps from reading raw FIFF file to ROI extraction (Step 1)
+2 .feature_extraction_test.m –  includes all steps from different features extraction to call an SVM classifier and get Repetition of cross-validation results (table 3, data paper). (Step 2)
 
-Repository content : 
-preproc_beamform_ROI.m – includes all steps from reading raw FIFF file to ROI extraction.
-feature_extraction_test.m –  includes the steps from different features extraction and call an SVM classifier and get nested cross-validation results (table 3, data paper).
+Note: It is necessary to have MATLAB's "Digital Signal Processing" and "Statistics and Machine Learning" Toolboxes installed within the MATLAB version you use to run feature_extraction_test.m successfully.
 
-participants-imputed.tsv - is MCIControl's participants.tsv file (see https://bids.neuroimaging.io/) in which missing values of covariates were imputed using the mean.
+3. participants-imputed.tsv - is MCIControl's participants.tsv file in which missing values of covariates were imputed using the mean. (see () for more info about participants.tsv)
+4. repeated_CV.m - a function for training an SVM model and produce cross-validation accuracy results for "Nrun" times repetition.
 
 Work in progress 
 
