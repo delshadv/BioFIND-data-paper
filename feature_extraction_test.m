@@ -34,7 +34,7 @@ BIDS   = spm_BIDS(bidspth); % (If it does not work with OSL's SPM, so copy last 
 subs   = spm_BIDS(BIDS,'subjects', 'task', 'Rest');
 nsub   = numel(subs);
 subdir = cellfun(@(s) ['sub-' s], subs, 'UniformOutput',false);
-processed_pth = fullfile(bwd,'Processed');
+processed_pth= fullfile(bwd,'Processed');
 
 % Define Confounds and Covariate matrix
 participants = spm_load(fullfile('code','participants-imputed.tsv'));
@@ -50,9 +50,8 @@ A_for_Cov = [site_num sex_num zscore([participants.age...
 % Cross-Validation setting
 kFolds = 10; % Number of folds for cross-validation (inner and outer loops)
 Nrun   = 100; % Number of runs to repeat cross-validation
-CVratio = [(kFolds-1)/kFolds 1-[(kFolds-1)/kFolds]]; % Train-Test Split ratio for cross-validation
 
-%% Relative power in source space %%
+%% Relative power in source space  %%
 
 features = [];
 parfor sub=1:length(subs)
@@ -63,13 +62,14 @@ parfor sub=1:length(subs)
     D = spm_eeg_load(infile);
     D = D.montage('switch',3); % Data must be in ROI montage
     
-    % Estimation of power spectral density
-    p = []; fP=[]; g=[]; y=[];
-    g=D(:,:,:);
+    % Remove bad badtrials
+    p = []; fP=[]; g=[];
+    g = D(:,:,:);
     g(:,:,D.badtrials)=[];
     
+    % Estimation of power spectral density 
     for e = 1:size(g,3)
-        %[p(e,:,:),fP] = pwelch(g(:,:,e)',500,450,1000,D.fsample);
+        %[p(e,:,:),fP] = pwelch(g(:,:,e)',500,250,1000,D.fsample);
         [p(e,:,:),fP] = periodogram(g(:,:,e)',[],1000,D.fsample);
     end
     
@@ -96,34 +96,32 @@ aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
 A = [aM group_num];
 A = A(mri_num==1,:); % Remove subjects without T1 MRI
 rng(1) % For reproducibility
-accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
-%accuracy = repeated_CV_matlab(A,CVratio,kFolds,Nrun);
+%accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
+accuracy = repeated_CV_matlab(A,kFolds,Nrun);
 
 mean(accuracy)
 std(accuracy)
-SEM = (std(accuracy)/sqrt(length(accuracy)))
-figure;hist(accuracy)
 
 %% Relative power in sensor space %%
 
 features = [];
 parfor sub=1:length(subs)
     
-    alphaRp = []; totalp = []; locAlpha = []; locLow = [];locHigh = [];
+    alphaRp = []; betaRp = []; totalp = []; locAlpha = []; locLow = [];locHigh = [];
     
     infile = fullfile(processed_pth,subdir{sub},'effdspmeeg');
     D = spm_eeg_load(infile);
     D = D.montage('switch',0); % Data must be in sensor montage
     
-    % Estimation of power spectral density
-    p = []; fP=[]; g=[]; y=[];
+    % Remove bad badtrials
+    p = []; fP=[]; g=[];
     chans = D.indchantype('MEGANY','GOOD'); % Retrieve all MEG channels
     g = D(chans,:,:);
     g(:,:,D.badtrials)=[];
     
-    
+    % Estimation of power spectral density
     for e = 1:size(g,3)
-        %[p(e,:,:),fP] = pwelch(g(:,:,e)',500,450,1000,D.fsample);
+        %[p(e,:,:),fP] = pwelch(g(:,:,e)',500,250,1000,D.fsample);
         [p(e,:,:),fP] = periodogram(g(:,:,e)',[],1000,D.fsample);
     end
     
@@ -148,62 +146,68 @@ end
 M   = features;
 aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
 A = [aM group_num]; % For all subjects
-A = A(mri_num==1,:); % Remove subjects without T1 MRI
-
 rng(1) % For reproducibility
-accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
+accuracy = repeated_CV_matlab(A,kFolds,Nrun);
 
 mean(accuracy)
 std(accuracy)
-SEM = (std(accuracy)/sqrt(length(accuracy)))
-figure;hist(accuracy)
+
+A = A(mri_num==1,:); % Remove subjects without T1 MRI
+rng(1) % For reproducibility
+accuracy = repeated_CV_matlab(A,kFolds,Nrun);
+
+mean(accuracy)
+std(accuracy)
 
 %% Connectivity measure: Amplitude Envelope Correlation %%
 
 features  = [];
-freqbands = {[7 13],[12,31]};
+freqbands = {[8 13],[13 30]};
 
 for ii = 1:length(freqbands)
-    
+    f=[];
     parfor sub = 1:length(subs)
         
+        g = []; y = []; y0 = []; y1 = []; cm = [];
         infile = fullfile(processed_pth,subdir{sub},'beffdspmeeg');
         D = spm_eeg_load(infile);
         D = D.montage('switch',3); % Data must be in ROI montage
         
+        % Remove bad badtrials
+        g = D(:,:,:);
+        g(:,:,D.badtrials)=[];
+        
         % Remove source leakage using sysmetric Orthogonalisation
-        y = D(:,:,:);
-        y = reshape(y,D.nchannels,D.nsamples*D.ntrials); % generalise to Nsource,Ntime*Ntrials
+        y = reshape(g,D.nchannels,D.nsamples*size(g,3));  % generalise to Nsource,Ntime*Ntrials(good ones)
+        y0 = ROInets.remove_source_leakage(y,'symmetric');
         
-        y0 = ft_preproc_bandpassfilter(y, D.fsample, freqbands{ii}, 4, 'but', 'twopass', 'no');
-        y0 = ROInets.remove_source_leakage(y0,'symmetric');
+        % Filter to desired freq band
+        y1 = ft_preproc_bandpassfilter(y0, D.fsample, freqbands{ii}, 4, 'but');
+        y = reshape(y1,D.nchannels,D.nsamples,size(g,3));
         
-        y = reshape(y0,D.nchannels,D.nsamples,D.ntrials);
-        
+        % Extract envelops
         Hen_lc_sep = [];
         for t=1:size(y,3)
             Hen_lc_sep(:,:,t) = hilbenv(squeeze(y(:,:,t)),1:D.nsamples,1,1);
         end
         
-        Hen_lc_sep = reshape(Hen_lc_sep,D.nchannels,D.nsamples*D.ntrials);
+        Hen_lc_sep = reshape(Hen_lc_sep,D.nchannels,D.nsamples*size(g,3));
         
+        % Calculate correlation
         cm = corr(resample(Hen_lc_sep',1,D.fsample));
         f(sub,:) = (cm(find(triu(cm,1))))';
         
     end
     features = [features f];
 end
-
 % Machine Learning
 M   = features;
 aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
 A = [aM group_num];
 A = A(mri_num==1,:); % Remove subjects without T1 MRI
 rng(1) % For reproducibility
-accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
+%accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
+accuracy = repeated_CV_matlab(A,kFolds,Nrun);
 
 mean(accuracy)
 std(accuracy)
-SEM = (std(accuracy)/sqrt(length(accuracy)))
-figure;hist(accuracy)
-
