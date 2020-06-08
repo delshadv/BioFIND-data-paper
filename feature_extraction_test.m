@@ -51,12 +51,12 @@ A_for_Cov = [site_num sex_num zscore([participants.age...
 kFolds = 10; % Number of folds for cross-validation (inner and outer loops)
 Nrun   = 100; % Number of runs to repeat cross-validation
 
-%% Relative power in source space  %%
+%% Relative power in source space %%
 
 features = [];
-parfor sub=1:length(subs)
+parfor sub = 1:length(subs)
     
-    alphaRp = []; betaRp = []; totalp = []; locAlpha = []; locLow = [];locHigh = [];
+    alphaRp = []; betaRp = []; totalp = []; locAlpha = []; locLow = []; locHigh = [];
     
     infile = fullfile(processed_pth,subdir{sub},'beffdspmeeg');
     D = spm_eeg_load(infile);
@@ -96,8 +96,7 @@ aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
 A = [aM group_num];
 A = A(mri_num==1,:); % Remove subjects without T1 MRI
 rng(1) % For reproducibility
-%accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
-accuracy = repeated_CV_matlab(A,kFolds,Nrun);
+accuracy = repeated_CV(A,kFolds,Nrun);
 
 mean(accuracy)
 std(accuracy)
@@ -107,7 +106,7 @@ std(accuracy)
 features = [];
 parfor sub=1:length(subs)
     
-    alphaRp = []; betaRp = []; totalp = []; locAlpha = []; locLow = [];locHigh = [];
+    alphaRp = []; betaRp = []; totalp = []; locAlpha = []; locLow = []; locHigh = [];
     
     infile = fullfile(processed_pth,subdir{sub},'effdspmeeg');
     D = spm_eeg_load(infile);
@@ -144,17 +143,17 @@ end
 
 % Machine Learning
 M   = features;
-aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
+aM = M - A_for_Cov * pinv(A_for_Cov) * M; % Regress out
 A = [aM group_num]; % For all subjects
 rng(1) % For reproducibility
-accuracy = repeated_CV_matlab(A,kFolds,Nrun);
+accuracy = repeated_CV(A,kFolds,Nrun);
 
 mean(accuracy)
 std(accuracy)
 
 A = A(mri_num==1,:); % Remove subjects without T1 MRI
 rng(1) % For reproducibility
-accuracy = repeated_CV_matlab(A,kFolds,Nrun);
+accuracy = repeated_CV(A,kFolds,Nrun);
 
 mean(accuracy)
 std(accuracy)
@@ -206,8 +205,7 @@ aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
 A = [aM group_num];
 A = A(mri_num==1,:); % Remove subjects without T1 MRI
 rng(1) % For reproducibility
-%accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
-accuracy = repeated_CV_matlab(A,kFolds,Nrun);
+accuracy = repeated_CV(A,kFolds,Nrun);
 
 mean(accuracy)
 std(accuracy)
