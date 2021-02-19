@@ -151,13 +151,13 @@ end
 for s = 1:nsub
         
     % move meg dir
-    xnatfile = fullfile(path_xnat,'subjects',sprintf('sub-Sub%04d',s),'experiments',sprintf('sub-TravelBrains%04d_ses-megCBU_derivatives',s),'scans','meg','resources','FIF');
+    xnatfile = fullfile(path_xnat,'subjects',sprintf('sub-TravelBrains%04d',s),'experiments',sprintf('sub-TravelBrains%04d_ses-megCBU_derivatives',s),'scans','meg','resources','FIF');
     bidsfile = fullfile(path_bids,'BioFIND','Travelbrains','derivatives','meg_derivatives',sprintf('sub-Sub%04d',s),'ses-megCBU','meg');
 
     movefile(fullfile(xnatfile,'sub*'),bidsfile); % could be copyfile if needed to keep XNAT
     
      % move meg dir
-    xnatfile = fullfile(path_xnat,'subjects',sprintf('sub-Sub%04d',s),'experiments',sprintf('sub-TravelBrains%04d_ses-megCTB_derivatives',s),'scans','meg','resources','FIF');
+    xnatfile = fullfile(path_xnat,'subjects',sprintf('sub-TravelBrains%04d',s),'experiments',sprintf('sub-TravelBrains%04d_ses-megCTB_derivatives',s),'scans','meg','resources','FIF');
     bidsfile = fullfile(path_bids,'BioFIND','Travelbrains','derivatives','meg_derivatives',sprintf('sub-Sub%04d',s),'ses-megCTB','meg');
 
     movefile(fullfile(xnatfile,'sub*'),bidsfile); % could be copyfile if needed to keep XNAT
