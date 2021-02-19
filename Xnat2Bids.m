@@ -3,23 +3,26 @@
 cd S: % 
 mkdir ('BioFIND','MCIControls')
 mkdir ('BioFIND','TravelBrains')
-path_xnat = '/imaging/dv01/Github/Xnat/projects/biofind/';
-path_bids = '/imaging/dv01/Github/BioFIND-BioFIND/';
+
+nsub = 324;
+
+bwd = pwd;
+path_xnat = '/imaging/dv01/Github/Xnat/projects/biofind/'; % will be specified later: bwd/projects/biofind
+path_bids = '/imaging/dv01/Github/BioFIND-BioFIND/'; % will be specified later : bwd/BioFINF
 %% MCIControls
 
-cd BioFIND/MCIControls % all need to be windows based format e.g. / => \
-mkdir ('derivatives','meg_derivatives')
-mkdir ('sub-emptyroom')
+mkdir ('BioFIND','MCIControls','derivatives','meg_derivatives')
+mkdir ('BioFIND','MCIControls''sub-emptyroom')
 
 % Raw data
-xnatfile = fullfile(path_xnat,sprintf('Resources/NO LABEL/'));
-bidsfile = fullfile(path_bids,sprintf('BioFIND/MCIControls/'));
+xnatfile = fullfile(path_xnat,'Resources','NO LABEL');
+bidsfile = fullfile(path_bids,'BioFIND','MCIControls');
 
 movefile(fullfile(xnatfile,'*'),bidsfile); % could be copyfile if needed to keep XNAT
 
 % create directories for raw data
 
-for s = 1:324
+for s = 1:nsub
     
     mkdir (fullfile(sprintf('sub-Sub%04d',s),'ses-meg1','anat'));
     mkdir (fullfile(sprintf('sub-Sub%04d',s),'ses-meg1','meg'));
@@ -29,45 +32,45 @@ end
 % copy related content for above
 
 
-for s = 1:324
+for s = 1:nsub
 
     % move anat dir
-    xnatfile = fullfile(path_xnat,sprintf('subjects/sub-Sub%04d/experiments/sub-Sub%04d_ses-meg1/scans/anat/resources/NIFTI/',s,s));
-    bidsfile = fullfile(path_bids,sprintf('BioFIND/MCIControls/sub-Sub%04d/ses-meg1/anat/',s));
+    xnatfile = fullfile(path_xnat,'subjects',sprintf('sub-Sub%04d',s),'experiments',sprintf('sub-Sub%04d_ses-meg1',s),'scans','anat','resources','NIFTI');
+    bidsfile = fullfile(path_bids,'BioFIND','MCIControls',sprintf('sub-Sub%04d',s),'ses-meg1','anat');
 
     movefile(fullfile(xnatfile,'sub*'),bidsfile); % could be copyfile if needed to keep XNAT
     
     % move meg dir
-    xnatfile = fullfile(path_xnat,sprintf('subjects/sub-Sub%04d/experiments/sub-Sub%04d_ses-meg1/scans/meg/resources/FIF/',s,s));
-    bidsfile = fullfile(path_bids,sprintf('BioFIND/MCIControls/sub-Sub%04d/ses-meg1/meg/',s));
+    xnatfile = fullfile(path_xnat,'subjects',sprintf('sub-Sub%04d',s),'experiments',sprintf('sub-Sub%04d_ses-meg1',s),'scans','meg','resources','FIF');
+    bidsfile = fullfile(path_bids,'BioFIND','MCIControls',sprintf('sub-Sub%04d',s),'ses-meg1','meg');
 
     movefile(fullfile(xnatfile,'sub*'),bidsfile); % could be copyfile if needed to keep XNAT
-
+    
 end
 
 % Derivatives (MaxFilter)
 
-xnatfile = fullfile(path_xnat,sprintf('Resources/Derivatives/'));
-bidsfile = fullfile(path_bids,sprintf('BioFIND/MCIControls/derivatives/meg_derivatives/'));
+xnatfile = fullfile(path_xnat,'Resources','Derivatives');
+bidsfile = fullfile(path_bids,'BioFIND','MCIControls','derivatives','meg_derivatives');
 
 movefile(fullfile(xnatfile,'*'),bidsfile); % could be copyfile if needed to keep XNAT
 
 cd derivatives/meg_derivatives
 % create directories for raw data
 
-for s = 1:324
+for s = 1:nsub
     
-    mkdir (fullfile(sprintf('sub-Sub%04d',s),'ses-meg1','meg'));
+    mkdir (fullfile('derivatives','meg_derivatives',sprintf('sub-Sub%04d',s),'ses-meg1','meg'));
 
 end
 
 % copy related content for above
 
-for s = 1:324
+for s = 1:nsub
         
     % move meg dir
-    xnatfile = fullfile(path_xnat,sprintf('subjects/sub-Sub%04d/experiments/sub-Sub%04d_ses-meg1_derivatives/scans/meg/resources/FIF/',s,s));
-    bidsfile = fullfile(path_bids,sprintf('BioFIND/MCIControls/derivatives/meg_derivatives/sub-Sub%04d/ses-meg1/meg/',s));
+    xnatfile = fullfile(path_xnat,'subjects',sprintf('sub-Sub%04d',s),'experiments',sprintf('sub-Sub%04d_ses-meg1_derivatives',s),'scans','meg','resources','FIF');
+    bidsfile = fullfile(path_bids,'BioFIND','MCIControls','derivatives','meg_derivatives',sprintf('sub-Sub%04d',s),'ses-meg1','meg');
 
     movefile(fullfile(xnatfile,'sub*'),bidsfile); % could be copyfile if needed to keep XNAT
 
@@ -79,7 +82,6 @@ end
 
 %% TravelBrains
 % will bee specified later
-
 
 
 
