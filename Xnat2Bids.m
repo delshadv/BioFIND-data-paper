@@ -11,8 +11,8 @@ path_xnat = '/imaging/dv01/Github/Xnat/projects/biofind/'; % will be specified l
 path_bids = '/imaging/dv01/Github/BioFIND-BioFIND/'; % will be specified later : bwd/BioFIND
 %% MCIControls
 
-mkdir (fullfile('BioFIND','MCIControls','derivatives','meg_derivatives'))
-mkdir (fullfile('BioFIND','MCIControls','sub-emptyroom'))
+mkdir (fullfile(path_bids,'BioFIND','MCIControls','derivatives','meg_derivatives'))
+mkdir (fullfile(path_bids,'BioFIND','MCIControls','sub-emptyroom'))
 
 % Raw data
 xnatfile = fullfile(path_xnat,'Resources','NO LABEL');
@@ -24,8 +24,8 @@ movefile(fullfile(xnatfile,'*'),bidsfile); % could be copyfile if needed to keep
 
 for s = 1:nsub
     
-    mkdir (fullfile(sprintf('sub-Sub%04d',s),'ses-meg1','anat'));
-    mkdir (fullfile(sprintf('sub-Sub%04d',s),'ses-meg1','meg'));
+    mkdir (fullfile(path_bids,'BioFIND','MCIControls',sprintf('sub-Sub%04d',s),'ses-meg1','anat'));
+    mkdir (fullfile(path_bids,'BioFIND','MCIControls',sprintf('sub-Sub%04d',s),'ses-meg1','meg'));
     
 end
 
@@ -55,11 +55,11 @@ bidsfile = fullfile(path_bids,'BioFIND','MCIControls','derivatives','meg_derivat
 
 movefile(fullfile(xnatfile,'*'),bidsfile); % could be copyfile if needed to keep XNAT
 
-% create directories for raw data
+% create directories for maxfiltered data
 
 for s = 1:nsub
     
-    mkdir (fullfile('derivatives','meg_derivatives',sprintf('sub-Sub%04d',s),'ses-meg1','meg'));
+    mkdir (fullfile(path_bids,'BioFIND','MCIControls','derivatives','meg_derivatives',sprintf('sub-Sub%04d',s),'ses-meg1','meg'));
 
 end
 
@@ -81,7 +81,7 @@ end
 
 %% TravelBrains
 
-mkdir (fullfile('BioFIND','TravelBrains','derivatives','meg_derivatives'))
+mkdir (fullfile(path_bids,'BioFIND','TravelBrains','derivatives','meg_derivatives'))
 nsub = 7;
 
 % Raw data
@@ -93,10 +93,10 @@ movefile(fullfile(xnatfile,'*'),bidsfile); % could be copyfile if needed to keep
 
 for s = 1:nsub
     
-    mkdir (fullfile('BioFIND','TravelBrains',sprintf('sub-Sub%04d',s),'ses-megCBU','anat'));
-    mkdir (fullfile('BioFIND','TravelBrains',sprintf('sub-Sub%04d',s),'ses-megCBU','meg'));
-    mkdir (fullfile('BioFIND','TravelBrains',sprintf('sub-Sub%04d',s),'ses-megCTB','anat'));
-    mkdir (fullfile('BioFIND','TravelBrains',sprintf('sub-Sub%04d',s),'ses-megCTB','meg'));
+    mkdir (fullfile(path_bids,'BioFIND','TravelBrains',sprintf('sub-Sub%04d',s),'ses-megCBU','anat'));
+    mkdir (fullfile(path_bids,'BioFIND','TravelBrains',sprintf('sub-Sub%04d',s),'ses-megCBU','meg'));
+    mkdir (fullfile(path_bids,'BioFIND','TravelBrains',sprintf('sub-Sub%04d',s),'ses-megCTB','anat'));
+    mkdir (fullfile(path_bids,'BioFIND','TravelBrains',sprintf('sub-Sub%04d',s),'ses-megCTB','meg'));
     
 end
 
@@ -131,5 +131,35 @@ for s = 1:nsub
   
 end
 
+% Derivatives (MaxFilter)
 
+xnatfile = fullfile(path_xnat,'Resources','Derivatives_TravelBrains');
+bidsfile = fullfile(path_bids,'BioFIND','Travelbrains','derivatives','meg_derivatives');
 
+movefile(fullfile(xnatfile,'*'),bidsfile); % could be copyfile if needed to keep XNAT
+
+% create directories for maxfiltered data
+
+for s = 1:nsub
+    
+    mkdir (fullfile(path_bids,'BioFIND','Travelbrains','derivatives','meg_derivatives',sprintf('sub-Sub%04d',s),'ses-meg1','meg'));
+
+end
+
+% copy related content for above
+
+for s = 1:nsub
+        
+    % move meg dir
+    xnatfile = fullfile(path_xnat,'subjects',sprintf('sub-Sub%04d',s),'experiments',sprintf('sub-TravelBrains%04d_ses-megCBU_derivatives',s),'scans','meg','resources','FIF');
+    bidsfile = fullfile(path_bids,'BioFIND','Travelbrains','derivatives','meg_derivatives',sprintf('sub-Sub%04d',s),'ses-megCBU','meg');
+
+    movefile(fullfile(xnatfile,'sub*'),bidsfile); % could be copyfile if needed to keep XNAT
+    
+     % move meg dir
+    xnatfile = fullfile(path_xnat,'subjects',sprintf('sub-Sub%04d',s),'experiments',sprintf('sub-TravelBrains%04d_ses-megCTB_derivatives',s),'scans','meg','resources','FIF');
+    bidsfile = fullfile(path_bids,'BioFIND','Travelbrains','derivatives','meg_derivatives',sprintf('sub-Sub%04d',s),'ses-megCTB','meg');
+
+    movefile(fullfile(xnatfile,'sub*'),bidsfile); % could be copyfile if needed to keep XNAT
+
+end
