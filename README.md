@@ -1,6 +1,8 @@
 # A multi-site, multi-participant magnetoencephalography resting-state dataset to study dementia: The BioFIND dataset
 
-In BioFIND dataset, we introduce a MEG dataset with 324 individuals, approximately half of whom are patients with MCI and the rest healthy controls. Brain activity was recorded while resting with eyes closed, using a 306-channel MEG scanner at one of two sites (Madrid or Cambridge), enabling tests of generalization across sites. A T1-weighted MRI is provided to assist source localisation. The MEG and MRI data are formatted according to the international BIDS standard. For more details please see the data paper in (PREPRINT LINK AVILABLE SOON). Data are freely available to analyse on the DPUK platform: https://portal.dementiasplatform.uk/AnalyseData/AnalysisEnvironment.
+In BioFIND dataset, we introduce a MEG dataset with 324 individuals, approximately half of whom are patients with MCI and the rest healthy controls. Brain activity was recorded while resting with eyes closed, using a 306-channel MEG scanner at one of two sites (Madrid or Cambridge), enabling tests of generalization across sites. A T1-weighted MRI is provided to assist source localisation. The MEG and MRI data are formatted according to the international BIDS standard. For more details please see the data paper in (PREPRINT LINK AVILABLE SOON). 
+
+Data are available to analyse on the DPUK platform: https://portal.dementiasplatform.uk/AnalyseData/AnalysisEnvironment. Their, they are stored in XNAT format, but the script "Xnat2Bids" can be run to convert from XNAT to BIDS format described in the data paper.
 
 This repository contains all MATLAB scripts (and functions) including pre-processing, co-registration, source-localisation, feature extraction and machine learning steps to reproduce results of data paper (PREPRINT LINK AVIABLE SOON).
 
@@ -45,8 +47,6 @@ Note: It is necessary to have MATLAB's "Digital Signal Processing" and "Statisti
 3. participants-imputed.tsv - is MCIControl's participants.tsv file in which missing values of covariates were imputed using the mean (see data paper for more info about participants.tsv)
 
 4. repeated_CV.m - a function for training an SVM model and produce cross-validation accuracy for "Nrun" permutations. (For more info about arguments see the function's description)
-
-Work in progress 
 
 Delshad Vaghari <dlshadv.ee@gmail.com>
 Rik Henson <rik.henson@mrc-cbu.cam.ac.uk> 
