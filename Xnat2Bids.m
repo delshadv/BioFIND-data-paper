@@ -7,8 +7,8 @@ mkdir ('BioFIND','TravelBrains')
 nsub = 324;
 
 bwd = pwd;
-path_xnat = 'S:\BioFIND - BioFIND\images'; % will be specified later: bwd/projects/biofind
-path_bids = 'S:\BioFIND - BioFIND\BioFIND'; % will be specified later : bwd/BioFIND
+path_xnat = 'S:\BioFIND - BioFIND\images'; 
+path_bids = 'S:\BioFIND - BioFIND\BioFIND';
 %% MCIControls
 
 mkdir (fullfile(path_bids,'MCIControls','derivatives','meg_derivatives'))
