@@ -2,7 +2,7 @@
 
 In BioFIND dataset, we introduce a MEG dataset with 324 individuals, approximately half of whom are patients with MCI and the rest healthy controls. Brain activity was recorded while resting with eyes closed, using a 306-channel MEG scanner at one of two sites (Madrid or Cambridge), enabling tests of generalization across sites. A T1-weighted MRI is provided to assist source localisation. The MEG and MRI data are formatted according to the international BIDS standard. For more details please see the data paper in (PREPRINT LINK AVILABLE SOON). 
 
-Data are available to analyse on the DPUK platform: https://portal.dementiasplatform.uk/AnalyseData/AnalysisEnvironment. Their, they are stored in XNAT format, but the script "Xnat2Bids" can be run to convert from XNAT to BIDS format described in the data paper.
+Data are available to analyse on the DPUK platform: https://portal.dementiasplatform.uk/apply. They are stored in XNAT format, but the script "Xnat2Bids" can be run to convert from XNAT to BIDS format described in the data paper. 
 
 This repository contains all MATLAB scripts (and functions) including pre-processing, co-registration, source-localisation, feature extraction and machine learning steps to reproduce results of data paper (PREPRINT LINK AVIABLE SOON).
 
