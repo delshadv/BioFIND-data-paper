@@ -1,3 +1,5 @@
+Before running the scripts on DPUK portal you need to read below instructions:
+
 Instructions for running Matlab using Linux with a graphical interface running from the VDI
 
 Visit https://portal.dpuk.ukserp.ac.uk/ if you have already applied for data in https://portal.dementiasplatform.uk/apply and gotten your credentials.
