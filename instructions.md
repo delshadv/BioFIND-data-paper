@@ -3,7 +3,7 @@ Before running the scripts on DPUK portal you need to read below instructions:
 Instructions for running Matlab using Linux with a graphical interface running from the VDI
 
 Visit https://portal.dpuk.ukserp.ac.uk/ if you have already applied for data in https://portal.dementiasplatform.uk/apply and gotten your credentials.
-In "VMware horizon client" open Windows 10 (third option is recommended)
+In "VMware horizon client" open Windows 10 (third option i.e. DPUK Windows 10 XL is recommended)
 
 1)	Type Xming in the search bar in the bottom left hand corner. Click Xming and it will open (there will be an X icon in the task bar)
 2)	Open putty on the desktop or if you do not have putty on the desktop open it from r:/
