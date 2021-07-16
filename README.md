@@ -1,4 +1,5 @@
 # A multi-site, multi-participant magnetoencephalography resting-state dataset to study dementia: The BioFIND dataset
+https://doi.org/10.48532/007000
 
 In BioFIND dataset, we introduce a MEG dataset with 324 individuals, approximately half of whom are patients with MCI and the rest healthy controls. Brain activity was recorded while resting with eyes closed, using a 306-channel MEG scanner at one of two sites (Madrid or Cambridge), enabling tests of generalization across sites. A T1-weighted MRI is provided to assist source localisation. The MEG and MRI data are formatted according to the international BIDS standard. For more details please see the data paper in (PREPRINT LINK AVILABLE here https://www.medrxiv.org/content/10.1101/2021.05.19.21257330v1). 
 
