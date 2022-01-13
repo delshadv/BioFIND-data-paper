@@ -73,7 +73,7 @@ parfor sub = 1:length(subs)
     S.outfile = fullfile(processed_pth,subdir{sub},'spmeeg');
     S.dataset = fullfile(procpth,subdir{sub},'ses-meg1','meg',[subdir{sub} '_ses-meg1_task-Rest_proc-sss_meg.fif']);
     S.mode = 'epoched';
-    S.channels = {'EOG', 'ECG', 'MEGMAG', 'MEGPLANAR'}; % EEG was removed
+    S.channels = {'EOG', 'ECG', 'MEGMAG', 'MEGGRADPLANAR'}; % EEG was removed
     S.checkboundary = 0;
     S.trl = [onset offset 0];
     try
@@ -90,8 +90,8 @@ parfor sub = 1:length(subs)
     S.save = 1;
     S.filename = fullfile(bidspth,subdir{sub},'ses-meg1','meg',[subdir{sub} '_ses-meg1_task-Rest_channels.tsv']);
     D = spm_eeg_prep(S);
-    D = chantype(D,indchantype(D,'megmag'),'MEGMAG');
-    D = chantype(D,indchantype(D,'megplanar'),'MEGPLANAR');
+    D = chantype(D,indchantype(D,'MEGMAG'),'MEGMAG');
+    D = chantype(D,indchantype(D,'MEGGRADPLANAR'),'MEGPLANAR');
     D.save
     
     % Downsampling the data 
