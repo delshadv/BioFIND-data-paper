@@ -262,3 +262,114 @@ parfor sub = 1:length(subs)
     D.save;
     
 end
+
+%% Table 1 - pre-requirements
+
+participants = spm_load(fullfile(wd,'participants-imputed.tsv'));
+group_num    = grp2idx(participants.group);
+mri_num      = grp2idx(participants.sImaging);
+
+%% Number of bad trials
+
+number_bad_epochs = nan(length(subs),1);
+for sub = 1:length(subs)
+    
+    infile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'effdspmeeg');
+    D = spm_eeg_load(infile);
+    
+    number_bad_epochs(sub,:) = length(D.badtrials);
+    
+end
+
+nanmean(number_bad_epochs(group_num==1)) % Control
+nanstd(number_bad_epochs(group_num==1)) % Control
+nanmean(number_bad_epochs(group_num==2)) % MCI
+nanstd(number_bad_epochs(group_num==2)) % MCI
+
+[h,p,ci,stats] = ttest2(number_bad_epochs(group_num==1),number_bad_epochs(group_num==2))
+
+%% Recording duration
+
+rec_dur = nan(length(subs),1);
+for sub = 1:length(subs)
+    
+    % Read event & json file to calculate offset
+    
+    tmp = spm_jsonread(fullfile(procpth,sprintf('sub-Sub%04d',sub),'ses-meg1','meg',[sprintf('sub-Sub%04d',sub) '_ses-meg1_task-Rest_proc-sss_meg.json']));
+    event_file = spm_load(fullfile(bidspth,sprintf('sub-Sub%04d',sub),'ses-meg1','meg',[sprintf('sub-Sub%04d',sub) '_ses-meg1_task-Rest_events.tsv']));
+    rec_dur(sub) = event_file.duration;
+    
+end
+[p,h,stats] = ranksum(rec_dur(group_num==1),rec_dur(group_num==2))
+nanmedian(rec_dur(group_num==1)) % Control
+iqr(rec_dur(group_num==1)) % Control
+nanmedian(rec_dur(group_num==2)) % MCI
+iqr(rec_dur(group_num==2)) % MCI
+
+
+%% Pre Task
+
+PreT  = participants.Pre_task;
+[p,h,stats] = ranksum(PreT(group_num==1),PreT(group_num==2))
+nanmedian(PreT(group_num==1)) % Control
+iqr(PreT(group_num==1)) % Control
+nanmedian(PreT(group_num==2)) % MCI
+iqr(PreT(group_num==2)) % MCI
+
+%% Mean and SD of head translation
+
+move1 = participants.Move1; %Mean of head trans
+move2 = participants.Move2; %STD of head trans
+
+nanmean(move1(group_num==1)) % Control
+nanstd(move1(group_num==1)) % Control
+nanmean(move1(group_num==2)) % MCI
+nanstd(move1(group_num==2)) % MCI
+[h,p,ci,stats] = ttest2(move1(group_num==1),move1(group_num==2)) 
+
+nanmean(move2(group_num==1)) % Control
+nanstd(move2(group_num==1)) % Control
+nanmean(move2(group_num==2)) % MCI
+nanstd(move2(group_num==2)) % MCI
+[h,p,ci,stats] = ttest2(move2(group_num==1),move2(group_num==2)) 
+
+%% Recording hour and recording year
+
+tday = participants.Recording_time;
+tyear = participants.Recording_year;
+
+nanmean(tday(group_num==1)) % Control
+nanstd(tday(group_num==1)) % Control
+nanmean(tday(group_num==2)) % MCI
+nanstd(tday(group_num==2)) % MCI
+[h,p,ci,stats] = ttest2(tday(group_num==1),tday(group_num==2)) 
+
+nanmean(tyear(group_num==1)) % Control
+nanstd(tyear(group_num==1)) % Control
+nanmean(tyear(group_num==2)) % MCI
+nanstd(tyear(group_num==2)) % MCI
+[h,p,ci,stats] = ttest2(tyear(group_num==1),tyear(group_num==2)) 
+
+%% MMSE, Education, Year
+
+edu = participants.Edu_years;
+age = participants.age;
+MMSE = participants.MMSE;
+
+nanmean(edu(group_num==1)) % Control
+nanstd(edu(group_num==1)) % Control
+nanmean(edu(group_num==2)) % MCI
+nanstd(edu(group_num==2)) % MCI
+[h,p,ci,stats] = ttest2(edu(group_num==1),edu(group_num==2)) 
+
+nanmean(age(group_num==1)) % Control
+nanstd(age(group_num==1)) % Control
+nanmean(age(group_num==2)) % MCI
+nanstd(age(group_num==2)) % MCI
+[h,p,ci,stats] = ttest2(age(group_num==1),age(group_num==2)) 
+
+nanmean(MMSE(group_num==1)) % Control
+nanstd(MMSE(group_num==1)) % Control
+nanmean(MMSE(group_num==2)) % MCI
+nanstd(MMSE(group_num==2)) % MCI
+[h,p,ci,stats] = ttest2(MMSE(group_num==1),MMSE(group_num==2)) 
