@@ -238,6 +238,7 @@ parfor sub = 1:length(subs)
     
     infile = fullfile(processed_pth,subdir{sub},'effdspmeeg');
     D = spm_eeg_load(infile);
+    D = osl_filter(D,[0.5 48]);
     
     % Run Beamforming
     
