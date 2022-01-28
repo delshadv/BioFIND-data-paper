@@ -1,4 +1,3 @@
-
 % Step 1
 %% Pre-Processing, Beamforming, ROI Extraction %%
 
@@ -13,9 +12,9 @@
 
 % Henson R.N 2020, Vaghari D 2020
 
-%% Define Paths ands variables
+%% Define Paths and variables
 
-% Assumed you are currently in a directory which includes BioFIND data,
+% Assumed you are currently in a directory that includes BioFIND data,
 % OSL and code directories as described in readme.md
 
 %restoredefaultpath
@@ -52,16 +51,16 @@ if ~exist(processed_pth,'dir')
 else
 end
 
-cd (processed_pth)    
+cd (processed_pth)
 
 %% PreProcess- Part 1 (Convert, Downsample, Filter)
 
-parfor sub = 1:length(subs)
+parfor sub = 1:nsub
     
     % Read event & json file to extract desirable length of MEG Recordings
     
-    tmp = spm_jsonread(fullfile(procpth,subdir{sub},'ses-meg1','meg',[subdir{sub} '_ses-meg1_task-Rest_proc-sss_meg.json']));
-    event_file = spm_load(fullfile(bidspth,subdir{sub},'ses-meg1','meg',[subdir{sub} '_ses-meg1_task-Rest_events.tsv']));
+    tmp = spm_jsonread(fullfile(procpth,sprintf('sub-Sub%04d',sub),'ses-meg1','meg',[sprintf('sub-Sub%04d',sub) '_ses-meg1_task-Rest_proc-sss_meg.json']));
+    event_file = spm_load(fullfile(bidspth,sprintf('sub-Sub%04d',sub),'ses-meg1','meg',[sprintf('sub-Sub%04d',sub) '_ses-meg1_task-Rest_events.tsv']));
     onset = (event_file.onset*tmp.SamplingFrequency)+1;
     
     % offset = onset + event_file.duration*tmp.SamplingFrequency;
@@ -70,8 +69,8 @@ parfor sub = 1:length(subs)
     % Converting
     
     S = [];
-    S.outfile = fullfile(processed_pth,subdir{sub},'spmeeg');
-    S.dataset = fullfile(procpth,subdir{sub},'ses-meg1','meg',[subdir{sub} '_ses-meg1_task-Rest_proc-sss_meg.fif']);
+    S.outfile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'spmeeg');
+    S.dataset = fullfile(procpth,sprintf('sub-Sub%04d',sub),'ses-meg1','meg',[sprintf('sub-Sub%04d',sub) '_ses-meg1_task-Rest_proc-sss_meg.fif']);
     S.mode = 'epoched';
     S.channels = {'EOG', 'ECG', 'MEGMAG', 'MEGPLANAR'}; % EEG was removed
     S.checkboundary = 0;
@@ -88,13 +87,13 @@ parfor sub = 1:length(subs)
     S.D    = D;
     S.task = 'bidschantype';
     S.save = 1;
-    S.filename = fullfile(bidspth,subdir{sub},'ses-meg1','meg',[subdir{sub} '_ses-meg1_task-Rest_channels.tsv']);
+    S.filename = fullfile(bidspth,sprintf('sub-Sub%04d',sub),'ses-meg1','meg',[sprintf('sub-Sub%04d',sub) '_ses-meg1_task-Rest_channels.tsv']);
     D = spm_eeg_prep(S);
     D = chantype(D,indchantype(D,'MEGMAG'),'MEGMAG');
     D = chantype(D,indchantype(D,'MEGGRADPLANAR'),'MEGPLANAR');
     D.save
     
-    % Downsampling the data 
+    % Downsampling the data
     S = [];
     S.D = D;
     S.method = 'resample';
@@ -102,7 +101,7 @@ parfor sub = 1:length(subs)
     D = spm_eeg_downsample(S);
     delete(S.D)
     
-    % High-pass filter 
+    % High-pass filter
     S = [];
     S.D = D;
     S.type = 'butterworth';
@@ -132,9 +131,9 @@ end
 
 %% PreProcess- Part 2 - Epoching, OSL Artifacts detection
 
-parfor sub = 1:length(subs)
+parfor sub = 1:nsub
     
-    infile = fullfile(processed_pth,subdir{sub},'ffdspmeeg');
+    infile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'ffdspmeeg');
     D = spm_eeg_load(infile);
     
     EpochLength = 2 * D.fsample; % in samples
@@ -160,9 +159,9 @@ end
 
 % Copy T1w files to processed directory;
 
-parfor sub=1:length(subs)
-    bidsT1 = fullfile(bidspth,subdir{sub},'ses-meg1','anat',[subdir{sub} '_ses-meg1_T1w.nii.gz']);
-    T1file = fullfile(processed_pth,subdir{sub},[subdir{sub} '_ses-meg1_T1w.nii'])
+parfor sub = 1:nsub
+    bidsT1 = fullfile(bidspth,sprintf('sub-Sub%04d',sub),'ses-meg1','anat',[sprintf('sub-Sub%04d',sub) '_ses-meg1_T1w.nii.gz']);
+    T1file = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),[sprintf('sub-Sub%04d',sub) '_ses-meg1_T1w.nii'])
     if exist(bidsT1,'file') & ~exist(T1file,'file')
         copyfile(bidsT1,[T1file '.gz']);
         gunzip([T1file '.gz'])
@@ -174,10 +173,10 @@ end
 
 UseHPs = 1; % Use headpoints
 
-parfor sub=1:length(subs)
+parfor sub = 1:nsub
     
     
-    infile = fullfile(processed_pth,subdir{sub},'effdspmeeg');
+    infile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'effdspmeeg');
     D = spm_eeg_load(infile);
     D = D.montage('switch',0);
     
@@ -188,12 +187,12 @@ parfor sub=1:length(subs)
     
     %D = rmfield(D,'inv');
     
-    T1file = fullfile(processed_pth,subdir{sub},[subdir{sub} '_ses-meg1_T1w.nii']);
+    T1file = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),[sprintf('sub-Sub%04d',sub) '_ses-meg1_T1w.nii']);
     if exist(T1file,'file')
         D = spm_eeg_inv_mesh_ui(D,1,T1file,2);
         
         V = spm_vol(T1file);
-        fids = spm_jsonread(fullfile(bidspth,subdir{sub},'ses-meg1','anat',[subdir{sub} '_ses-meg1_T1w.json']));
+        fids = spm_jsonread(fullfile(bidspth,sprintf('sub-Sub%04d',sub),'ses-meg1','anat',[sprintf('sub-Sub%04d',sub) '_ses-meg1_T1w.json']));
         
         mrifid = [];
         megfid = D.fiducials;
@@ -234,12 +233,17 @@ end
 p           = parcellation(fullfile('fMRI_parcellation_ds8mm.nii.gz'));
 mni_coords  = p.template_coordinates;
 
-parfor sub = 1:length(subs)
+parfor sub = 1:nsub
     
-    infile = fullfile(processed_pth,subdir{sub},'effdspmeeg');
+    infile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'effdspmeeg');
     D = spm_eeg_load(infile);
     D = osl_filter(D,[0.5 48]);
     
+    S=[];
+    S.D = D;
+    S.datatype ='neuromag';
+    S.do_plots = false;
+    [D,~] = osl_normalise_sensor_data(S);
     % Run Beamforming
     
     S = struct;
@@ -249,18 +253,19 @@ parfor sub = 1:length(subs)
     S.pca_order         = 50;
     S.type              = 'Scalar';
     S.inverse_method    = 'beamform';
-    S.prefix            = 'b';
+    S.prefix            = 'b_norm';
     
     D = osl_inverse_model(D,mni_coords,S);
     
     % Select montage
-    D = D.montage('switch',1);
+    D = D.montage('switch',2); % Unweighted inverse model
     
     % Extract ROI (Region Of Interest)
     D = ROInets.get_node_tcs(D,p.to_matrix(p.binarize),'pca');
     
     % Save the data
     D.save;
+    
     
 end
 
@@ -326,13 +331,13 @@ nanmean(move1(group_num==1)) % Control
 nanstd(move1(group_num==1)) % Control
 nanmean(move1(group_num==2)) % MCI
 nanstd(move1(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(move1(group_num==1),move1(group_num==2)) 
+[h,p,ci,stats] = ttest2(move1(group_num==1),move1(group_num==2))
 
 nanmean(move2(group_num==1)) % Control
 nanstd(move2(group_num==1)) % Control
 nanmean(move2(group_num==2)) % MCI
 nanstd(move2(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(move2(group_num==1),move2(group_num==2)) 
+[h,p,ci,stats] = ttest2(move2(group_num==1),move2(group_num==2))
 
 %% Recording hour and recording year
 
@@ -343,13 +348,13 @@ nanmean(tday(group_num==1)) % Control
 nanstd(tday(group_num==1)) % Control
 nanmean(tday(group_num==2)) % MCI
 nanstd(tday(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(tday(group_num==1),tday(group_num==2)) 
+[h,p,ci,stats] = ttest2(tday(group_num==1),tday(group_num==2))
 
 nanmean(tyear(group_num==1)) % Control
 nanstd(tyear(group_num==1)) % Control
 nanmean(tyear(group_num==2)) % MCI
 nanstd(tyear(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(tyear(group_num==1),tyear(group_num==2)) 
+[h,p,ci,stats] = ttest2(tyear(group_num==1),tyear(group_num==2))
 
 %% MMSE, Education, Year
 
@@ -361,16 +366,16 @@ nanmean(edu(group_num==1)) % Control
 nanstd(edu(group_num==1)) % Control
 nanmean(edu(group_num==2)) % MCI
 nanstd(edu(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(edu(group_num==1),edu(group_num==2)) 
+[h,p,ci,stats] = ttest2(edu(group_num==1),edu(group_num==2))
 
 nanmean(age(group_num==1)) % Control
 nanstd(age(group_num==1)) % Control
 nanmean(age(group_num==2)) % MCI
 nanstd(age(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(age(group_num==1),age(group_num==2)) 
+[h,p,ci,stats] = ttest2(age(group_num==1),age(group_num==2))
 
 nanmean(MMSE(group_num==1)) % Control
 nanstd(MMSE(group_num==1)) % Control
 nanmean(MMSE(group_num==2)) % MCI
 nanstd(MMSE(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(MMSE(group_num==1),MMSE(group_num==2)) 
+[h,p,ci,stats] = ttest2(MMSE(group_num==1),MMSE(group_num==2))
