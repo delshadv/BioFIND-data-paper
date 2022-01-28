@@ -1,4 +1,3 @@
-
 % Step 1
 %% Pre-Processing, Beamforming, ROI Extraction %%
 
@@ -52,11 +51,11 @@ if ~exist(processed_pth,'dir')
 else
 end
 
-cd (processed_pth)    
+cd (processed_pth)
 
 %% PreProcess- Part 1 (Convert, Downsample, Filter)
 
-parfor sub = 1:324%length(subs)
+parfor sub = 1:nsub
     
     % Read event & json file to extract desirable length of MEG Recordings
     
@@ -94,7 +93,7 @@ parfor sub = 1:324%length(subs)
     D = chantype(D,indchantype(D,'MEGGRADPLANAR'),'MEGPLANAR');
     D.save
     
-    % Downsampling the data 
+    % Downsampling the data
     S = [];
     S.D = D;
     S.method = 'resample';
@@ -102,7 +101,7 @@ parfor sub = 1:324%length(subs)
     D = spm_eeg_downsample(S);
     delete(S.D)
     
-    % High-pass filter 
+    % High-pass filter
     S = [];
     S.D = D;
     S.type = 'butterworth';
@@ -132,7 +131,7 @@ end
 
 %% PreProcess- Part 2 - Epoching, OSL Artifacts detection
 
-parfor sub = 1:324%length(subs)
+parfor sub = 1:nsub
     
     infile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'ffdspmeeg');
     D = spm_eeg_load(infile);
@@ -160,7 +159,7 @@ end
 
 % Copy T1w files to processed directory;
 
-parfor sub=1:length(subs)
+parfor sub = 1:nsub
     bidsT1 = fullfile(bidspth,sprintf('sub-Sub%04d',sub),'ses-meg1','anat',[sprintf('sub-Sub%04d',sub) '_ses-meg1_T1w.nii.gz']);
     T1file = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),[sprintf('sub-Sub%04d',sub) '_ses-meg1_T1w.nii'])
     if exist(bidsT1,'file') & ~exist(T1file,'file')
@@ -174,7 +173,7 @@ end
 
 UseHPs = 1; % Use headpoints
 
-parfor sub=1:length(subs)
+parfor sub = 1:nsub
     
     
     infile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'effdspmeeg');
@@ -234,11 +233,17 @@ end
 p           = parcellation(fullfile('fMRI_parcellation_ds8mm.nii.gz'));
 mni_coords  = p.template_coordinates;
 
-parfor sub = 1:length(subs)
+parfor sub = 1:nsub
     
     infile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'effdspmeeg');
     D = spm_eeg_load(infile);
+    D = osl_filter(D,[0.5 48]);
     
+    S=[];
+    S.D = D;
+    S.datatype ='neuromag';
+    S.do_plots = false;
+    [D,~] = osl_normalise_sensor_data(S);
     % Run Beamforming
     
     S = struct;
@@ -248,18 +253,19 @@ parfor sub = 1:length(subs)
     S.pca_order         = 50;
     S.type              = 'Scalar';
     S.inverse_method    = 'beamform';
-    S.prefix            = 'b';
+    S.prefix            = 'b_norm';
     
     D = osl_inverse_model(D,mni_coords,S);
     
     % Select montage
-    D = D.montage('switch',1);
+    D = D.montage('switch',2); % Unweighted inverse model
     
     % Extract ROI (Region Of Interest)
     D = ROInets.get_node_tcs(D,p.to_matrix(p.binarize),'pca');
     
     % Save the data
     D.save;
+    
     
 end
 
@@ -325,13 +331,13 @@ nanmean(move1(group_num==1)) % Control
 nanstd(move1(group_num==1)) % Control
 nanmean(move1(group_num==2)) % MCI
 nanstd(move1(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(move1(group_num==1),move1(group_num==2)) 
+[h,p,ci,stats] = ttest2(move1(group_num==1),move1(group_num==2))
 
 nanmean(move2(group_num==1)) % Control
 nanstd(move2(group_num==1)) % Control
 nanmean(move2(group_num==2)) % MCI
 nanstd(move2(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(move2(group_num==1),move2(group_num==2)) 
+[h,p,ci,stats] = ttest2(move2(group_num==1),move2(group_num==2))
 
 %% Recording hour and recording year
 
@@ -342,13 +348,13 @@ nanmean(tday(group_num==1)) % Control
 nanstd(tday(group_num==1)) % Control
 nanmean(tday(group_num==2)) % MCI
 nanstd(tday(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(tday(group_num==1),tday(group_num==2)) 
+[h,p,ci,stats] = ttest2(tday(group_num==1),tday(group_num==2))
 
 nanmean(tyear(group_num==1)) % Control
 nanstd(tyear(group_num==1)) % Control
 nanmean(tyear(group_num==2)) % MCI
 nanstd(tyear(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(tyear(group_num==1),tyear(group_num==2)) 
+[h,p,ci,stats] = ttest2(tyear(group_num==1),tyear(group_num==2))
 
 %% MMSE, Education, Year
 
@@ -360,21 +366,19 @@ nanmean(edu(group_num==1)) % Control
 nanstd(edu(group_num==1)) % Control
 nanmean(edu(group_num==2)) % MCI
 nanstd(edu(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(edu(group_num==1),edu(group_num==2)) 
+[h,p,ci,stats] = ttest2(edu(group_num==1),edu(group_num==2))
 
 nanmean(age(group_num==1)) % Control
 nanstd(age(group_num==1)) % Control
 nanmean(age(group_num==2)) % MCI
 nanstd(age(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(age(group_num==1),age(group_num==2)) 
+[h,p,ci,stats] = ttest2(age(group_num==1),age(group_num==2))
 
 nanmean(MMSE(group_num==1)) % Control
 nanstd(MMSE(group_num==1)) % Control
 nanmean(MMSE(group_num==2)) % MCI
 nanstd(MMSE(group_num==2)) % MCI
-[h,p,ci,stats] = ttest2(MMSE(group_num==1),MMSE(group_num==2)) 
-
-%%
+[h,p,ci,stats] = ttest2(MMSE(group_num==1),MMSE(group_num==2))
 
 % STEP 2
 %% Features Extraction
@@ -393,25 +397,7 @@ nanstd(MMSE(group_num==2)) % MCI
 
 %% Define Paths and variables
 
-% Assumed you are currently in a directory which includes BioFIND data,
-% OSL and code directories as described in readme.md
-
-bwd = pwd;
-addpath(fullfile(bwd,'code')); % Assuming you've already downloaded BioFind
-% repository in "code" directory.
-
-% Setup OSL
-addpath(fullfile(bwd,'osl','osl-core'))
-osl_startup
-osl_check_installation
-
-% BIDS and Processed directories
-bidspth = fullfile(bwd,'BioFIND','MCIControls'); %BIDS Path
-BIDS   = spm_BIDS(bidspth); % (If it does not work with OSL's SPM, so copy last version of spm_BIDS)
-subs   = spm_BIDS(BIDS,'subjects', 'task', 'Rest');
-nsub   = numel(subs);
-subdir = cellfun(@(s) ['sub-' s], subs, 'UniformOutput',false);
-processed_pth= fullfile(bwd,'Processed');
+addpath(fullfile(bwd,'code'))
 
 % Define Confounds and Covariate matrix
 participants = spm_load(fullfile('code','participants-imputed.tsv'));
@@ -420,80 +406,115 @@ site_num     = grp2idx(participants.site);
 sex_num      = grp2idx(participants.sex);
 mri_num      = grp2idx(participants.sImaging);
 
-A_for_Cov = [site_num sex_num zscore([participants.age...
-    participants.Move1 participants.Move2...
-    participants.Recording_time number_bad_epochs]) ones(size(participants.age))];
+covars = {[],[site_num zscore([participants.Move1 participants.Move2...
+    participants.Recording_time PreT number_bad_epochs]) ones(size(participants.age))],...
+    [site_num sex_num zscore([participants.Move1 participants.Move2 participants.age ...
+    participants.Recording_time PreT number_bad_epochs edu]) ones(size(participants.age))]};
 
 % Cross-Validation setting
 kFolds = 10; % Number of folds for cross-validation (inner and outer loops)
 Nrun   = 100; % Number of runs to repeat cross-validation
-
-%% Relative power in source space  %%
-
-features = [];
-parfor sub=1:324%length(subs)
     
-    alphaRp = []; betaRp = []; totalp = []; locAlpha = []; locLow = [];locHigh = [];
-    
-    infile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'beffdspmeeg');
-    D = spm_eeg_load(infile);
-    D = D.montage('switch',3); % Data must be in ROI montage
-    
-    % Remove bad badtrials
-    p = []; fP=[]; g=[];
-    g = D(:,:,:);
-    g(:,:,D.badtrials)=[];
-    
-    % Estimation of power spectral density 
-    for e = 1:size(g,3)
-        %[p(e,:,:),fP] = pwelch(g(:,:,e)',500,250,1000,D.fsample);
-        [p(e,:,:),fP] = periodogram(g(:,:,e)',[],1000,D.fsample);
-    end
-    
-    p = squeeze(mean(p,1)); p=p';
-    
-    locAlpha = find(fP>=8 & fP<=12);
-    locBeta  = find(fP>12 & fP<=30);
-    locLow   = find(fP==0.5);
-    locHigh  = find(fP==48);
-    
-    totalp  = sum(p(:,locLow:locHigh),2);
-    alphaRp = sum((p(:,locAlpha)./totalp),2);
-    betaRp  = sum((p(:,locBeta)./totalp),2);
-    
-    tmp = [alphaRp betaRp];
-    features(sub,:) = tmp(:);
-    tmp = [];
-    
-end
-
-% Machine Learning
-M   = features;
-aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
-A = [aM group_num];
-A = A(mri_num==1,:); % Remove subjects without T1 MRI
-rng(1) % For reproducibility
-%accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
-accuracy = repeated_CV_matlab(A,kFolds,Nrun);
-
-mean(accuracy)
-std(accuracy)
-
 %% Relative power in sensor space %%
 
 features = [];
-parfor sub=1:324%length(subs)
+parfor sub=1:nsub
     
-    alphaRp = []; betaRp = []; totalp = []; locAlpha = []; locLow = [];locHigh = [];
     
     infile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'effdspmeeg');
     D = spm_eeg_load(infile);
     D = D.montage('switch',0); % Data must be in sensor montage
     
     % Remove bad badtrials
-    p = []; fP=[]; g=[];
-    chans = D.indchantype('MEGANY','GOOD'); % Retrieve all MEG channels
-    g = D(chans,:,:);
+    p1 = []; p2 = []; fP = [];
+    chans1 = D.indchantype('MEGMAG','GOOD'); % Retrieve all GRADs channels
+    chans2 = D.indchantype('MEGPLANAR','GOOD'); % Retrieve all GRADs channels
+    g1 = D(chans1,:,:);
+    g1(:,:,D.badtrials)=[];
+    g2 = D(chans2,:,:);
+    g2(:,:,D.badtrials)=[];
+    
+    % Estimation of power spectral density
+    for e = 1:size(g1,3)
+        %[p(e,:,:),fP] = pwelch(g(:,:,e)',500,250,1000,D.fsample);
+        [p1(e,:,:),fP] = periodogram(g1(:,:,e)',[],1000,D.fsample);
+        [p2(e,:,:),~] = periodogram(g2(:,:,e)',[],1000,D.fsample);
+    end
+    
+    p1 = squeeze(mean(p1,1)); p1 = p1';
+    p2 = squeeze(mean(p2,1)); p2 = p2';
+
+    p1 = p1./sum(p1,1);
+    p2 = p2./sum(p2,1);
+    
+    locAlpha = find(fP>=8 & fP<=12);
+    locBeta  = find(fP>12 & fP<=30);
+    locLow   = find(fP==2);
+    locHigh  = find(fP==48);
+    
+    %totalp  = sum(p(:,locLow:locHigh),2);
+    alphaRp1 = sum((p1(:,locAlpha)),2);
+    betaRp1  = sum((p1(:,locBeta)),2);
+    
+    alphaRp2 = sum((p2(:,locAlpha)),2);
+    betaRp2  = sum((p2(:,locBeta)),2);
+    
+    tmp = [alphaRp1' alphaRp2' betaRp1' betaRp2']; 
+    features(sub,:) = tmp(:);
+    tmp = [];
+    
+    
+end
+
+M   = features;
+
+for nn = 1 : length(covars)
+    
+    A = [];
+    A_for_Cov = covars{nn};
+    % Machine Learning
+    
+    if isempty(A_for_Cov)
+        A = [M group_num];
+        rng(1) % For reproducibility
+        accuracy = repeated_CV_matlab(A,kFolds,Nrun);
+        mean(accuracy)
+        std(accuracy)
+    else
+        aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
+        A = [aM group_num]; % For all subjects
+        rng(1) % For reproducibility
+        accuracy = repeated_CV_matlab(A,kFolds,Nrun);
+        mean(accuracy)
+        std(accuracy)
+        
+        if nn == 2
+            A = A(mri_num==1,:); % Remove subjects without T1 MRI
+            rng(1) % For reproducibility
+            accuracy = repeated_CV_matlab(A,kFolds,Nrun);
+            mean(accuracy)
+            std(accuracy)
+        end
+        
+        
+    end
+    
+end
+
+
+%% Relative power in source space  %%
+    
+features = [];
+parfor sub=1:nsub
+    
+    
+    infile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'b_normeffdspmeeg');
+    D = spm_eeg_load(infile);
+    D = D.montage('switch',4); % Data must be in ROI montage
+    
+    % Remove bad badtrials
+    p = []; fP=[];
+    g = D(:,:,:);
     g(:,:,D.badtrials)=[];
     
     % Estimation of power spectral density
@@ -506,7 +527,7 @@ parfor sub=1:324%length(subs)
     
     locAlpha = find(fP>=8 & fP<=12);
     locBeta  = find(fP>12 & fP<=30);
-    locLow   = find(fP==0.5);
+    locLow   = find(fP==2);
     locHigh  = find(fP==48);
     
     totalp  = sum(p(:,locLow:locHigh),2);
@@ -521,14 +542,10 @@ end
 
 % Machine Learning
 M   = features;
+A_for_Cov = covars{2};
+
 aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
-A = [aM group_num]; % For all subjects
-rng(1) % For reproducibility
-accuracy = repeated_CV_matlab(A,kFolds,Nrun);
-
-mean(accuracy)
-std(accuracy)
-
+A = [aM group_num];
 A = A(mri_num==1,:); % Remove subjects without T1 MRI
 rng(1) % For reproducibility
 accuracy = repeated_CV_matlab(A,kFolds,Nrun);
@@ -543,12 +560,11 @@ freqbands = {[8 13],[13 30]};
 
 for ii = 1:length(freqbands)
     f=[];
-    parfor sub = 1:length(subs)
+    parfor sub = 1:nsub
         
-        g = []; y = []; y0 = []; y1 = []; cm = [];
-        infile = fullfile(processed_pth,subdir{sub},'beffdspmeeg');
+        infile = fullfile(processed_pth,sprintf('sub-Sub%04d',sub),'b_normeffdspmeeg');
         D = spm_eeg_load(infile);
-        D = D.montage('switch',3); % Data must be in ROI montage
+        D = D.montage('switch',4); % Data must be in ROI montage
         
         % Remove bad badtrials
         g = D(:,:,:);
@@ -569,6 +585,7 @@ for ii = 1:length(freqbands)
         end
         
         Hen_lc_sep = reshape(Hen_lc_sep,D.nchannels,D.nsamples*size(g,3));
+        %Hen_lc_sep = abs(Hen_lc_sep)
         
         % Calculate correlation
         cm = corr(resample(Hen_lc_sep',1,D.fsample));
@@ -579,11 +596,11 @@ for ii = 1:length(freqbands)
 end
 % Machine Learning
 M   = features;
+A_for_Cov = covars{2};
 aM = M - A_for_Cov*pinv(A_for_Cov)*M; % Regress out
 A = [aM group_num];
 A = A(mri_num==1,:); % Remove subjects without T1 MRI
 rng(1) % For reproducibility
-%accuracy = repeated_CV(A,CVratio,kFolds,Nrun);
 accuracy = repeated_CV_matlab(A,kFolds,Nrun);
 
 mean(accuracy)
