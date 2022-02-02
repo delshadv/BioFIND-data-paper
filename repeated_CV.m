@@ -17,10 +17,10 @@ function accuracy = repeated_CV_matlab(A,kFolds,Nrun)
 allData = A(:,1:end-1);
 targets = A(:,end);
 
-parfor rr = 1:Nrun  % can be for
+parfor rr = 1:Nrun
     
     kIdx = crossvalind('Kfold', length(targets), kFolds);
-    Score = zeros(1, kFolds);
+    acc = zeros(1, kFolds);
     
     for k = 1:kFolds
         
@@ -29,13 +29,16 @@ parfor rr = 1:Nrun  % can be for
         xtest = allData(kIdx==k, :);
         ytest = targets(kIdx==k);
         
-        SVMmodel = fitcsvm(xtrain, ytrain, ...
+          SVMmodel = fitcsvm(xtrain, ytrain, ...
               'KernelFunction', 'linear', 'KernelScale', 'auto', ...
               'BoxConstraint', 1,'Standardize', true,'solver','ISDA');
-%       SVMmodel = fitclinear(xtrain, ytrain,'Solver','bfgs');
-        Score(k) = loss(SVMmodel,xtest, ytest); % default: 'LossFun','classiferror'
+%         SVMmodel = fitclinear(xtrain, ytrain,'Solver',{'dual','bfgs'});
+%        Score(k) = loss(SVMmodel,xtest, ytest); % default: 'LossFun','classiferror'
+        ts_pred = predict(SVMmodel,xtest);
+        acc(k) = ((sum(ts_pred==1 & ytest==1)/sum(ytest==1))+...
+                    (sum(ts_pred==2 & ytest==2)/sum(ytest==2)))/2*100;
         
     end
     
-    accuracy(rr) = (mean(1-Score))*100;
+    accuracy(rr) = (mean(acc));
 end
