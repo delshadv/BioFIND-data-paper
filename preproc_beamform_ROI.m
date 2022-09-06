@@ -196,11 +196,11 @@ parfor sub = 1:nsub
         
         mrifid = [];
         megfid = D.fiducials;
-        mrifid.fid.label = {'Nasion';'LPA';'RPA'};
-        nasion = V.mat*[fids.AnatomicalLandmarkCoordinates.Nasion; 1]; nasion = nasion(1:3)';
+        mrifid.fid.label = {'NAS';'LPA';'RPA'};
+        nas = V.mat*[fids.AnatomicalLandmarkCoordinates.NAS; 1]; nas = nas(1:3)';
         lpa    = V.mat*[fids.AnatomicalLandmarkCoordinates.LPA; 1];    lpa    = lpa(1:3)';
         rpa    = V.mat*[fids.AnatomicalLandmarkCoordinates.RPA; 1];    rpa    = rpa(1:3)';
-        mrifid.fid.pnt = [nasion; lpa; rpa];
+        mrifid.fid.pnt = [nas; lpa; rpa];
         mrifid.pnt = D.inv{1}.mesh.fid.pnt;
         D = spm_eeg_inv_datareg_ui(D, 1, megfid, mrifid, UseHPs);
         if UseHPs, D.inv{1}.comment = 'With headpoints'; else, D.inv{1}.comment = 'SPM fids only'; end
@@ -216,7 +216,7 @@ parfor sub = 1:nsub
         megfid = D.fiducials;
         megfid.fid.label{find(strcmp([megfid.fid.label],'LPA'))} = 'lpa';
         megfid.fid.label{find(strcmp([megfid.fid.label],'RPA'))} = 'rpa';
-        megfid.fid.label{find(strcmp([megfid.fid.label],'Nasion'))} = 'nas';
+        megfid.fid.label{find(strcmp([megfid.fid.label],'NAS'))} = 'nas';
         D = spm_eeg_inv_datareg_ui(D, 1, megfid, mrifid, 0);
         D.save;
     end
