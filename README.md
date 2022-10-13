@@ -1,11 +1,11 @@
 # A multi-site, multi-participant magnetoencephalography resting-state dataset to study dementia: The BioFIND dataset
 https://doi.org/10.48532/007000
 
-In BioFIND dataset, we introduce a MEG dataset with 324 individuals, approximately half of whom are patients with MCI and the rest healthy controls. Brain activity was recorded while resting with eyes closed, using a 306-channel MEG scanner at one of two sites (Madrid or Cambridge), enabling tests of generalization across sites. A T1-weighted MRI is provided to assist source localisation. The MEG and MRI data are formatted according to the international BIDS standard. For more details please see the data paper in (PREPRINT LINK AVILABLE here https://www.medrxiv.org/content/10.1101/2021.05.19.21257330v1). 
+In BioFIND dataset, we introduce a MEG dataset with currently 324 individuals, approximately half of whom are patients with MCI and the rest healthy controls. Brain activity was recorded while resting with eyes closed, using a 306-channel MEG scanner at one of two sites (Madrid or Cambridge), enabling tests of generalization across sites. A T1-weighted MRI is provided to assist source localisation. The MEG and MRI data are formatted according to the international BIDS standard. For more details please see the data paper in (https://doi.org/10.1016/j.neuroimage.2022.119344). 
 
 Data are available to analyse on the DPUK platform: https://portal.dementiasplatform.uk/apply. They are stored in XNAT and BIDS format. The script "Xnat2Bids" can be run to convert from XNAT to BIDS format described in the data paper even though the BIDS format is already availlable.
 
-This repository contains all MATLAB scripts (and functions) including pre-processing, co-registration, source-localisation, feature extraction and machine learning steps to reproduce results of data paper (https://www.medrxiv.org/content/10.1101/2021.05.19.21257330v1).
+This repository contains all MATLAB scripts (and functions) including pre-processing, co-registration, source-localisation, feature extraction and machine learning steps to reproduce results of data paper (https://doi.org/10.1016/j.neuroimage.2022.119344).
 
 The BioFIND repository content: 
 
